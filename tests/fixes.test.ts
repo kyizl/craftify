@@ -1,15 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { isRetryableNetworkError } from '@/client/http/retry';
 import { TokenBucketRateLimiter } from '@/client/rate-limiter';
-<<<<<<< HEAD
-import { resolveDefaultMode, assertValidCombination } from '@/networks/pika-network/guards';
-=======
 import {
   resolveDefaultMode,
   assertValidCombination,
 } from '@/networks/pika-network/guards';
 import { getTopRank } from '@/networks/pika-network/ranks';
->>>>>>> 828dd22 (feat(ranks): add profile rank util)
 import { PikaNetworkLeaderboardResponseSchema } from '@/networks/pika-network/schemas';
 import { withStatKeyAccessor, type ProfileStat } from '@/networks/pika-network/types';
 
@@ -37,13 +33,9 @@ describe('Craftify API Wrapper Fixes', () => {
     expect(isRetryableNetworkError(new Error('fetch failed'))).toBe(true);
     expect(isRetryableNetworkError(new Error('connection reset by peer'))).toBe(true);
     expect(isRetryableNetworkError({ code: 'ETIMEDOUT', message: 'timeout' })).toBe(true);
-<<<<<<< HEAD
-    expect(isRetryableNetworkError(new DOMException('Aborted', 'AbortError'))).toBe(false);
-=======
     expect(isRetryableNetworkError(new DOMException('Aborted', 'AbortError'))).toBe(
       false,
     );
->>>>>>> 828dd22 (feat(ranks): add profile rank util)
   });
 
   it('leaderboard entry schema supports null clan and rank', () => {
@@ -84,29 +76,17 @@ describe('Craftify API Wrapper Fixes', () => {
     expect(resolveDefaultMode('bedwars')).toBe('ALL_MODES');
     expect(resolveDefaultMode('pillars')).toBe('Seasonal');
 
-<<<<<<< HEAD
-    expect(() =>
-      assertValidCombination('bedwars', 'SOLO', 'total'),
-    ).not.toThrow();
-
-    expect(() =>
-      assertValidCombination('bedwars', 'INVALID_MODE', 'total'),
-    ).toThrow(RangeError);
-=======
     expect(() => assertValidCombination('bedwars', 'SOLO', 'total')).not.toThrow();
 
     expect(() => assertValidCombination('bedwars', 'INVALID_MODE', 'total')).toThrow(
       RangeError,
     );
->>>>>>> 828dd22 (feat(ranks): add profile rank util)
 
     expect(() =>
       // @ts-expect-error test runtime validation on invalid gamemode
       assertValidCombination('invalid_gamemode', 'ALL_MODES', 'total'),
     ).toThrow(RangeError);
   });
-<<<<<<< HEAD
-=======
 
   it('resolves the highest active rank for global and gamemode scopes', () => {
     const profile = {
@@ -157,5 +137,4 @@ describe('Craftify API Wrapper Fixes', () => {
 
     expect(getTopRank(profile, 'global')).toBeNull();
   });
->>>>>>> 828dd22 (feat(ranks): add profile rank util)
 });
