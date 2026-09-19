@@ -60,6 +60,7 @@ const profileRankSchema = z.object({
   rankDisplay: z.string().optional(),
 });
 
+<<<<<<< HEAD
 const profileDonorRankSchema = z.object({
   name: z.string().optional(),
   displayName: z.string().optional(),
@@ -67,6 +68,20 @@ const profileDonorRankSchema = z.object({
   season: z.string().nullable().optional(),
   expiry: z.number().optional(),
 });
+=======
+export const PikaNetworkProfileDonorRankSchema = z
+  .object({
+    name: z.string().optional(),
+    displayName: z.string().optional(),
+    server: z.string().optional(),
+    season: z.string().nullable().optional(),
+    expiry: z.number().optional(),
+  })
+  .passthrough();
+export type PikaNetworkProfileDonorRank = z.infer<
+  typeof PikaNetworkProfileDonorRankSchema
+>;
+>>>>>>> 828dd22 (feat(ranks): add profile rank util)
 
 export const clanMemberSchema = z
   .object({
@@ -79,6 +94,16 @@ export const clanMemberSchema = z
   .passthrough();
 export type ClanMember = z.infer<typeof clanMemberSchema>;
 
+<<<<<<< HEAD
+=======
+const profileFriendSchema = z
+  .object({
+    username: z.string(),
+  })
+  .passthrough();
+export type PikaNetworkProfileFriend = z.infer<typeof profileFriendSchema>;
+
+>>>>>>> 828dd22 (feat(ranks): add profile rank util)
 /**
  * GET /clans/{clanName}
  */
@@ -115,9 +140,15 @@ export const PikaNetworkProfileResponseSchema = z
     boosting: z.boolean().optional(),
     discord_boosting: z.boolean().optional(),
     rank: profileRankSchema.optional(),
+<<<<<<< HEAD
     ranks: z.array(profileDonorRankSchema).optional(),
     clan: PikaNetworkClanResponseSchema.nullable().optional(),
     friends: z.array(z.unknown()).optional(),
+=======
+    ranks: z.array(PikaNetworkProfileDonorRankSchema).optional(),
+    clan: PikaNetworkClanResponseSchema.nullable().optional(),
+    friends: z.array(profileFriendSchema).optional(),
+>>>>>>> 828dd22 (feat(ranks): add profile rank util)
   })
   .passthrough();
 export type PikaNetworkProfileResponse = z.infer<typeof PikaNetworkProfileResponseSchema>;

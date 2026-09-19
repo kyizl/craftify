@@ -7,7 +7,13 @@ import type {
 } from '@/networks/pika-network/enums';
 import type { PikaNetworkLeaderboardResponse } from '@/networks/pika-network/schemas';
 
+<<<<<<< HEAD
 export interface GetLeaderboardParams<G extends PikaNetworkGamemode = PikaNetworkGamemode> {
+=======
+export interface GetLeaderboardParams<
+  G extends PikaNetworkGamemode = PikaNetworkGamemode,
+> {
+>>>>>>> 828dd22 (feat(ranks): add profile rank util)
   gamemode: G;
   stat: PikaNetworkStat<G> | (string & {});
   mode?: PikaNetworkMode<G> | (string & {});
@@ -19,7 +25,13 @@ export interface GetLeaderboardParams<G extends PikaNetworkGamemode = PikaNetwor
   limit?: number;
 }
 
+<<<<<<< HEAD
 export interface GetProfileStatsParams<G extends PikaNetworkGamemode = PikaNetworkGamemode> {
+=======
+export interface GetProfileStatsParams<
+  G extends PikaNetworkGamemode = PikaNetworkGamemode,
+> {
+>>>>>>> 828dd22 (feat(ranks): add profile rank util)
   username: string;
   gamemode: G;
   mode?: PikaNetworkMode<G> | (string & {});
@@ -110,6 +122,11 @@ export {
   type ClanMember,
   type PikaNetworkClanResponse,
   type PikaNetworkLeaderboardResponse,
+<<<<<<< HEAD
+=======
+  type PikaNetworkProfileDonorRank,
+  type PikaNetworkProfileFriend,
+>>>>>>> 828dd22 (feat(ranks): add profile rank util)
   type PikaNetworkProfileResponse,
   type PikaNetworkTotalsResponse,
 } from '@/networks/pika-network/schemas';

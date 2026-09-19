@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { isRetryableNetworkError } from '@/client/http/retry';
 import { TokenBucketRateLimiter } from '@/client/rate-limiter';
+<<<<<<< HEAD
 import { resolveDefaultMode, assertValidCombination } from '@/networks/pika-network/guards';
+=======
+import {
+  resolveDefaultMode,
+  assertValidCombination,
+} from '@/networks/pika-network/guards';
+import { getTopRank } from '@/networks/pika-network/ranks';
+>>>>>>> 828dd22 (feat(ranks): add profile rank util)
 import { PikaNetworkLeaderboardResponseSchema } from '@/networks/pika-network/schemas';
 import { withStatKeyAccessor, type ProfileStat } from '@/networks/pika-network/types';
 
@@ -29,7 +37,13 @@ describe('Craftify API Wrapper Fixes', () => {
     expect(isRetryableNetworkError(new Error('fetch failed'))).toBe(true);
     expect(isRetryableNetworkError(new Error('connection reset by peer'))).toBe(true);
     expect(isRetryableNetworkError({ code: 'ETIMEDOUT', message: 'timeout' })).toBe(true);
+<<<<<<< HEAD
     expect(isRetryableNetworkError(new DOMException('Aborted', 'AbortError'))).toBe(false);
+=======
+    expect(isRetryableNetworkError(new DOMException('Aborted', 'AbortError'))).toBe(
+      false,
+    );
+>>>>>>> 828dd22 (feat(ranks): add profile rank util)
   });
 
   it('leaderboard entry schema supports null clan and rank', () => {
@@ -70,6 +84,7 @@ describe('Craftify API Wrapper Fixes', () => {
     expect(resolveDefaultMode('bedwars')).toBe('ALL_MODES');
     expect(resolveDefaultMode('pillars')).toBe('Seasonal');
 
+<<<<<<< HEAD
     expect(() =>
       assertValidCombination('bedwars', 'SOLO', 'total'),
     ).not.toThrow();
@@ -77,10 +92,70 @@ describe('Craftify API Wrapper Fixes', () => {
     expect(() =>
       assertValidCombination('bedwars', 'INVALID_MODE', 'total'),
     ).toThrow(RangeError);
+=======
+    expect(() => assertValidCombination('bedwars', 'SOLO', 'total')).not.toThrow();
+
+    expect(() => assertValidCombination('bedwars', 'INVALID_MODE', 'total')).toThrow(
+      RangeError,
+    );
+>>>>>>> 828dd22 (feat(ranks): add profile rank util)
 
     expect(() =>
       // @ts-expect-error test runtime validation on invalid gamemode
       assertValidCombination('invalid_gamemode', 'ALL_MODES', 'total'),
     ).toThrow(RangeError);
   });
+<<<<<<< HEAD
+=======
+
+  it('resolves the highest active rank for global and gamemode scopes', () => {
+    const profile = {
+      ranks: [
+        { name: 'kitpvp2', displayName: 'God', server: 'kitpvp', expiry: -1 },
+        { name: 'kitpvp5', displayName: 'Baron', server: 'kitpvp', expiry: -1 },
+        { name: 'practice3', displayName: 'Diamond', server: 'global', expiry: -1 },
+        { name: 'practice4', displayName: 'Emerald', server: 'global', expiry: 1 },
+      ],
+    };
+
+    expect(getTopRank(profile, 'kitpvp')?.displayName).toBe('Baron');
+    expect(getTopRank(profile, 'global')?.displayName).toBe('Diamond');
+    expect(getTopRank(profile, 'all')?.displayName).toBe('Diamond');
+  });
+
+  it('prioritizes official global staff roles over donor ranks', () => {
+    const profile = {
+      ranks: [
+        { name: 'survival10', displayName: 'King+++', server: 'global', expiry: -1 },
+        { name: 'srmod', displayName: 'Sr Mod', server: 'global', expiry: -1 },
+        { name: 'games4', displayName: 'Champion', server: 'global', expiry: -1 },
+      ],
+    };
+
+    expect(getTopRank(profile, 'global')?.displayName).toBe('Sr Mod');
+  });
+
+  it('uses the highest network rank even when its API server is gamemode-specific', () => {
+    const profile = {
+      ranks: [
+        { name: 'practice3', displayName: 'Diamond', server: 'global', expiry: -1 },
+        { name: 'games3', displayName: 'Titan', server: 'games', expiry: -1 },
+      ],
+    };
+
+    expect(getTopRank(profile, 'global')?.displayName).toBe('Titan');
+  });
+
+  it('does not treat unrelated gamemode ranks as global ranks', () => {
+    const profile = {
+      rank: { rankDisplay: '&8[&7Member&8]&a ' },
+      ranks: [
+        { name: 'oplifesteal6', displayName: 'Omega', server: 'oplifesteal', expiry: -1 },
+        { name: 'bedwars5', displayName: 'Overlord', server: 'bedwars', expiry: -1 },
+      ],
+    };
+
+    expect(getTopRank(profile, 'global')).toBeNull();
+  });
+>>>>>>> 828dd22 (feat(ranks): add profile rank util)
 });

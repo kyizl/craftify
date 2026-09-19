@@ -156,6 +156,7 @@ Account profile: rank, boosting flags, clan membership. Not gameplay stats, see 
 | ---------- | -------- | ------------------- | ---------------- |
 | `username` | `string` | **required** (path) | case-insensitive |
 
+<<<<<<< HEAD
 **Unverified schema.** Not covered by the query-parameter crawl. Field types below reflect the client's validation schema, which is deliberately permissive.
 
 | Field                                                                                        | Type                    | Notes                                  |
@@ -166,6 +167,20 @@ Account profile: rank, boosting flags, clan membership. Not gameplay stats, see 
 | `clan`                                                                                       | `{ name, tag } \| null` | optional, nullable rather than omitted |
 | `friends`                                                                                    | `unknown[]`             | optional                               |
 | _(other fields)_                                                                             | `unknown`               | schema is passthrough                  |
+=======
+The response includes account metadata, donor ranks, optional clan details, and friend usernames. Additional fields are preserved by the client for forward compatibility.
+
+| Field                                                                                        | Type                     | Notes                                  |
+| -------------------------------------------------------------------------------------------- | ------------------------ | -------------------------------------- |
+| `username`, `lastSeen`, `discord_verified`, `email_verified`, `boosting`, `discord_boosting` | scalar                   | all optional                           |
+| `rank.level`, `rank.experience`, `rank.percentage`, `rank.rankDisplay`                       | scalar                   | all optional                           |
+| `ranks`                                                                                      | `DonorRank[]`            | optional donor/server ranks            |
+| `clan`                                                                                       | `{ name, tag } \| null`  | optional, nullable rather than omitted |
+| `friends`                                                                                    | `{ username: string }[]` | optional                               |
+| _(other fields)_                                                                             | `unknown`                | schema is passthrough                  |
+
+Each donor rank can include `name`, `displayName`, `server`, `season`, and `expiry`.
+>>>>>>> 828dd22 (feat(ranks): add profile rank util)
 
 Example: `GET /profile/resuns`. This document is static; for a live, real request against this exact URL, see [Profile](docs/pika-network-api/profile.md) on the documentation site.
 

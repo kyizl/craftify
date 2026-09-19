@@ -18,5 +18,16 @@
       "tests/*": ["tests/*"]
     }
   },
+<<<<<<< HEAD
   "include": ["src", "scripts", "tests", "docs/.vitepress/**/*", "*.config.ts"]
+=======
+  "include": [
+    "src",
+    "scripts",
+    "tests",
+    "docs/.vitepress/**/*",
+    "*.config.ts",
+    "check.ts"
+  ]
+>>>>>>> 828dd22 (feat(ranks): add profile rank util)
 }
