@@ -19,10 +19,18 @@ import type { NetworkClientOptions } from '@/client';
 import type { PikaNetworkMixinConstructor } from '@/networks/pika-network/mixins/mixin-constructor';
 import type { PikaNetworkRateLimitInfo } from '@/networks/pika-network/types';
 
-export interface PikaNetworkClientOptions extends NetworkClientOptions {
+interface PikaNetworkDefaultHostOptions extends NetworkClientOptions {
   apiKey: string;
-  baseUrl?: string;
+  baseUrl?: undefined;
 }
+
+interface PikaNetworkCustomHostOptions extends NetworkClientOptions {
+  apiKey?: string;
+  baseUrl: string;
+}
+
+export type PikaNetworkClientOptions =
+  PikaNetworkDefaultHostOptions | PikaNetworkCustomHostOptions;
 
 const withLeaderboardsMixin = withLeaderboards(
   NetworkClient as PikaNetworkMixinConstructor,
@@ -43,14 +51,16 @@ export class PikaNetworkClient extends PikaNetworkFeatureSet {
   protected readonly baseUrl: string;
 
   constructor(options: PikaNetworkClientOptions) {
+    const baseUrl = normalizeBaseUrl(options.baseUrl ?? PikaNetworkDefaultBaseUrl);
+    const apiKey = resolveApiKey(options.apiKey, baseUrl);
     super({
       ...defu(options, { rateLimit: PikaNetworkDefaultRateLimit }),
       headers: {
         ...options.headers,
-        'X-Api-Key': validateApiKey(options.apiKey),
+        ...(apiKey !== undefined && { 'X-Api-Key': apiKey }),
       },
     });
-    this.baseUrl = normalizeBaseUrl(options.baseUrl ?? PikaNetworkDefaultBaseUrl);
+    this.baseUrl = baseUrl;
   }
 
   getRateLimitInfo(): PikaNetworkRateLimitInfo | null {
@@ -71,11 +81,18 @@ function parseHeaderNumber(value: string | null): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function validateApiKey(apiKey: string): string {
-  if (apiKey.trim().length === 0) {
+function resolveApiKey(apiKey: string | undefined, baseUrl: string): string | undefined {
+  if (apiKey === undefined) {
+    if (baseUrl === normalizeBaseUrl(PikaNetworkDefaultBaseUrl)) {
+      throw new TypeError('apiKey is required when using the default baseUrl');
+    }
+    return undefined;
+  }
+  const trimmed = apiKey.trim();
+  if (trimmed.length === 0) {
     throw new TypeError('apiKey must not be empty');
   }
-  return apiKey.trim();
+  return trimmed;
 }
 
 function normalizeBaseUrl(baseUrl: string): string {

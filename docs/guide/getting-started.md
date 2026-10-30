@@ -26,7 +26,7 @@ if (!apiKey) throw new Error('PIKA_API_KEY is required');
 const pika = new PikaNetworkClient({ apiKey });
 ```
 
-Every request requires a key from `/apikey` in-game. Keep it in an environment variable and never commit it. The client also provides bounded rate limiting, retries, and caching. See the [Rate Limiting](./rate-limiting) guide before changing those defaults.
+Every request to the default PikaNetwork API requires a key from `/apikey` in-game. Keep it in an environment variable and never commit it. When you set a custom `baseUrl`, `apiKey` is optional and the `X-Api-Key` header is only sent if you provide one. The client also provides bounded rate limiting, retries, and caching. See the [Rate Limiting](./rate-limiting) guide before changing those defaults.
 
 ## Fetch a leaderboard
 

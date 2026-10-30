@@ -37,6 +37,48 @@ describe('PikaNetwork authentication', () => {
     expect(() => new PikaNetworkClient({ apiKey: '  ' })).toThrow(TypeError);
   });
 
+  it('rejects a blank API key on a custom base URL', () => {
+    expect(
+      () =>
+        new PikaNetworkClient({
+          apiKey: '  ',
+          baseUrl: 'https://stats.example.test/api',
+        }),
+    ).toThrow(TypeError);
+  });
+
+  it('requires an API key when the default base URL is used explicitly', () => {
+    expect(
+      () => new PikaNetworkClient({ baseUrl: 'https://stats.pika-network.net/api/' }),
+    ).toThrow(TypeError);
+  });
+
+  it('omits the API key header on a custom base URL without a key', async () => {
+    const fetchMock = vi.fn<typeof fetch>(() =>
+      Promise.resolve(
+        Response.json(
+          { username: 'player' },
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        ),
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const client = new PikaNetworkClient({
+      baseUrl: 'https://stats.example.test/api',
+      cache: false,
+      maxRetries: 0,
+    });
+
+    await client.getProfile('player');
+
+    const requestHeaders = fetchMock.mock.calls[0]?.[1]?.headers;
+    expect(new Headers(requestHeaders).has('X-Api-Key')).toBe(false);
+  });
+
   it('waits for the Retry-After interval before retrying a rate-limited request', async () => {
     const fetchMock = vi
       .fn<typeof fetch>()

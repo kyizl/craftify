@@ -27,7 +27,7 @@ https://stats.pika-network.net/api
 
 <Badge type="warning" text="required" />
 
-Every request requires the `X-Api-Key` header. Create a key in-game with `/apikey` after linking Discord with `/linkaccount`. Pass it to `new PikaNetworkClient({ apiKey })` and keep it out of source control.
+Every request requires the `X-Api-Key` header. Create a key in-game with `/apikey` after linking Discord with `/linkaccount`. Pass it to `new PikaNetworkClient({ apiKey })` and keep it out of source control. With a custom `baseUrl`, `apiKey` may be omitted and no `X-Api-Key` header is sent.
 
 ## Content type
 
