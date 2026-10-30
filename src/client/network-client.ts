@@ -11,13 +11,11 @@ import type { NetworkClientOptions } from '@/client/network-client-options';
 import type { BatchOptions, BatchResult, RequestConfig } from '@/types';
 import type { z } from 'zod';
 
-/**
- * shared foundation for per-network clients
- *
- * owns http transport, caching, rate limiting, and batching.
- * subclasses supply `networkName`/`baseUrl`
- * and their own endpoint methods on top of `fetchAndValidate`.
- */
+export interface NetworkResponseMetadata {
+  status: number;
+  headers: Headers;
+}
+
 export abstract class NetworkClient {
   private readonly http: HttpClient;
   private readonly cache: NetworkCache;
@@ -25,6 +23,7 @@ export abstract class NetworkClient {
     Pick<NetworkClientOptions, keyof typeof defaultNetworkClientOptions>
   >;
   private readonly batchQueue: PQueue;
+  private lastResponseMetadata: NetworkResponseMetadata | null = null;
 
   protected abstract readonly networkName: string;
   protected abstract readonly baseUrl: string;
@@ -34,11 +33,13 @@ export abstract class NetworkClient {
     const rateLimiter = new TokenBucketRateLimiter(options.rateLimit);
     this.http = new HttpClient({
       network:
-        (this as unknown as { networkName?: string }).networkName ?? this.constructor.name ??
+        (this as unknown as { networkName?: string }).networkName ??
+        this.constructor.name ??
         'NetworkClient',
       rateLimiter,
       defaultTimeoutMs: this.config.timeoutMs,
       defaultMaxRetries: this.config.maxRetries,
+      headers: options.headers,
       userAgent: this.config.userAgent,
     });
     this.cache =
@@ -46,13 +47,6 @@ export abstract class NetworkClient {
     this.batchQueue = new PQueue({ concurrency: this.config.batchConcurrency });
   }
 
-  /**
-   * Fetches a response, validates it against `schema`, and caches the result under `cacheKey`.
-   * Includes negative caching for null (not-found) responses.
-   *
-   * @returns the parsed response, or `null` for a missing entity (skips validation)
-   * @throws {NetworkValidationError} if the response doesn't match `schema`
-   */
   protected async fetchAndValidate<S extends z.ZodType>(
     cacheKey: string,
     url: string,
@@ -69,11 +63,16 @@ export abstract class NetworkClient {
       maxRetries: config.maxRetries ?? this.config.maxRetries,
       signal: config.signal,
       headers: config.headers,
+      onResponse: (response) => {
+        this.lastResponseMetadata = {
+          status: response.status,
+          headers: new Headers(response.headers),
+        };
+      },
     });
 
     if (raw === null) {
       if (!config.skipCache) {
-        // Negative cache missing entities for a short TTL (10s default) to prevent hammering
         await this.cache.set(cacheKey, null, config.cacheTtlMs ?? 10_000);
       }
       return null;
@@ -97,28 +96,18 @@ export abstract class NetworkClient {
     return data;
   }
 
-  /**
-   * Purges a specific key from the cache.
-   */
   async invalidate(cacheKey: string): Promise<void> {
     await this.cache.delete(cacheKey);
   }
 
-  /**
-   * Clears the entire client cache.
-   */
+  getLastResponseMetadata(): NetworkResponseMetadata | null {
+    return this.lastResponseMetadata;
+  }
+
   async clearCache(): Promise<void> {
     await this.cache.clear();
   }
 
-  /**
-   * executes operations with bounded concurrency
-   *
-   * default: 10; override via `batchConcurrency` or per-call `concurrency`.
-   *
-   * every operation still goes through the same rate limiter as a single call.
-   * refer to the batch requests guide for the full contract.
-   */
   async batch<const T extends readonly (() => Promise<unknown>)[]>(
     operations: T,
     options?: BatchOptions,

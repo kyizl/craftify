@@ -9,9 +9,6 @@ import {
 } from '@/errors';
 import type { TokenBucketRateLimiter } from '@/client/rate-limiter';
 
-// resolve `globalThis.fetch` at call time rather than module initialization.
-// ofetch captures the global fetch implementation when the client is created,
-// which prevents test environments from replacing `globalThis.fetch` afterward.
 const fetch = createFetch({
   fetch: (input: RequestInfo | URL, init?: RequestInit) => globalThis.fetch(input, init),
 });
@@ -19,6 +16,7 @@ const fetch = createFetch({
 export interface HttpClientOptions {
   network: string;
   rateLimiter: TokenBucketRateLimiter;
+  headers?: Record<string, string>;
   defaultTimeoutMs?: number;
   defaultMaxRetries?: number;
   userAgent?: string;
@@ -29,6 +27,7 @@ export interface GetJsonOptions {
   maxRetries?: number;
   signal?: AbortSignal;
   headers?: Record<string, string>;
+  onResponse?: (response: { status: number; headers: Headers }) => void;
 }
 
 export class HttpClient {
@@ -36,6 +35,7 @@ export class HttpClient {
   private readonly rateLimiter: TokenBucketRateLimiter;
   private readonly defaultTimeoutMs: number;
   private readonly defaultMaxRetries: number;
+  private readonly headers: Record<string, string>;
   private readonly userAgent: string;
 
   constructor(options: HttpClientOptions) {
@@ -43,13 +43,10 @@ export class HttpClient {
     this.rateLimiter = options.rateLimiter;
     this.defaultTimeoutMs = options.defaultTimeoutMs ?? 10_000;
     this.defaultMaxRetries = options.defaultMaxRetries ?? 2;
+    this.headers = options.headers ?? {};
     this.userAgent = options.userAgent ?? 'craftify';
   }
 
-  /**
-   * Gets a URL and returns the parsed body, or `null` for a clean not-found.
-   * @throws a `NetworkAPIError` subclass for anything else
-   */
   async getJson(url: string, options: GetJsonOptions = {}): Promise<unknown> {
     const maxRetries = options.maxRetries ?? this.defaultMaxRetries;
 
@@ -68,10 +65,11 @@ export class HttpClient {
               timeout: options.timeoutMs ?? this.defaultTimeoutMs,
               signal: options.signal,
               ignoreResponseError: true,
-              retry: false, // retry, backoff, and rate-limit handling are delegated to `withRetry`
+              retry: false,
               headers: {
                 Accept: 'application/json',
                 'User-Agent': this.userAgent,
+                ...this.headers,
                 ...options.headers,
               },
             });
@@ -88,6 +86,8 @@ export class HttpClient {
               { url, cause: error },
             );
           }
+
+          options.onResponse?.({ status: response.status, headers: response.headers });
 
           const outcome = interpretStatus(response.status, response._data, url);
 
@@ -112,7 +112,12 @@ export class HttpClient {
               });
             }
             case 'retryable': {
-              throw new RetrySignal(outcome.isRateLimit);
+              throw new RetrySignal(
+                outcome.isRateLimit,
+                outcome.isRateLimit
+                  ? parseRetryAfter(response.headers.get('Retry-After'))
+                  : undefined,
+              );
             }
           }
         },
@@ -138,4 +143,13 @@ export class HttpClient {
       throw error;
     }
   }
+}
+
+function parseRetryAfter(value: string | null): number | undefined {
+  if (value === null || value.trim() === '') return undefined;
+  const seconds = Number(value);
+  if (Number.isFinite(seconds) && seconds >= 0) return seconds * 1000;
+  const retryAt = Date.parse(value);
+  if (Number.isNaN(retryAt)) return undefined;
+  return Math.max(0, retryAt - Date.now());
 }

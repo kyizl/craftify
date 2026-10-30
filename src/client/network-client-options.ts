@@ -2,23 +2,12 @@ import type { NetworkCache } from '@/client/cache';
 import type { RateLimiterOptions } from '@/client/rate-limiter';
 
 export interface NetworkClientOptions {
-  /**
-   * overrides the default rate limiter configuration.
-   * see `rate-limiter.ts` for the rationale behind why defaults are conservative.
-   */
+  headers?: Record<string, string>;
+
   rateLimit?: RateLimiterOptions;
 
-  /**
-   * custom cache backend
-   *
-   * defaults to keyv's in-memory adapter.
-   * pass `false` to disable caching.
-   */
   cache?: NetworkCache | false;
 
-  /**
-   * default ttl for cached reads
-   */
   defaultCacheTtlMs?: number;
 
   timeoutMs?: number;
@@ -27,10 +16,6 @@ export interface NetworkClientOptions {
 
   userAgent?: string;
 
-  /**
-   * default max simultaneous in-flight operations for `batch()` calls;
-   * individual calls are unaffected.
-   */
   batchConcurrency?: number;
 }
 

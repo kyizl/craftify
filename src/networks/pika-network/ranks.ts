@@ -128,12 +128,6 @@ function profileRankFallback(
   };
 }
 
-/**
- * Returns the highest donor or staff rank in the requested scope.
- *
- * `global` selects ranks assigned network-wide, a gamemode selects that
- * gamemode's ladder, and `all` considers every donor rank.
- */
 export function getTopRank(
   profile: PikaNetworkProfileResponse,
   scope: PikaNetworkRankScope = 'global',

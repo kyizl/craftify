@@ -14,10 +14,6 @@ export function resolveDefaultMode<G extends PikaNetworkGamemode>(
   return (required ?? 'ALL_MODES') as PikaNetworkMode<G>;
 }
 
-/**
- * rejects invalid gamemode/mode/interval combinations beforehand.
- * refer to the gamemodes and enums guide.
- */
 export function assertValidCombination(
   gamemode: PikaNetworkGamemode,
   mode: string,
@@ -25,13 +21,13 @@ export function assertValidCombination(
 ): void {
   const validModes = (PikaNetworkModes as Record<string, readonly string[]>)[gamemode];
   if (!validModes) {
-    throw new RangeError(
-      `"${gamemode}" is not a valid PikaNetwork gamemode.`,
-    );
+    throw new RangeError(`"${gamemode}" is not a valid PikaNetwork gamemode.`);
   }
 
   const isYearly = interval === 'yearly';
-  const isYearlyCapable = (YearlyCapableGamemodes as readonly string[]).includes(gamemode);
+  const isYearlyCapable = (YearlyCapableGamemodes as readonly string[]).includes(
+    gamemode,
+  );
 
   if (!validModes.includes(mode)) {
     throw new RangeError(
@@ -43,5 +39,13 @@ export function assertValidCombination(
     throw new RangeError(
       `interval="yearly" is only supported for ${YearlyCapableGamemodes.join(' and ')} — "${gamemode}" will silently return empty results instead of erroring, so this is checked client-side.`,
     );
+  }
+}
+
+export function assertValidGamemode(
+  gamemode: string,
+): asserts gamemode is PikaNetworkGamemode {
+  if (!Object.hasOwn(PikaNetworkModes, gamemode)) {
+    throw new RangeError(`"${gamemode}" is not a valid PikaNetwork gamemode.`);
   }
 }

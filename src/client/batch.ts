@@ -1,15 +1,6 @@
 import PQueue from 'p-queue';
 import type { BatchOptions, BatchResult } from '@/types';
 
-/**
- * runs a set of operations with bounded concurrency. each operation's
- * result type is inferred individually (like `Promise.all`'s tuple
- * overload), so mixed-type batches stay fully typed instead of widening
- * to a shared union.
- *
- * operations are settled independently by default; `throwOnError` aggregates
- * failures and throws after all operations have completed, attaching partial results.
- */
 export async function runBatch<const T extends readonly (() => Promise<unknown>)[]>(
   operations: T,
   defaultQueue: PQueue,

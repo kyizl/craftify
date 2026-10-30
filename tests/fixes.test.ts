@@ -6,8 +6,18 @@ import {
   assertValidCombination,
 } from '@/networks/pika-network/guards';
 import { getTopRank } from '@/networks/pika-network/ranks';
-import { PikaNetworkLeaderboardResponseSchema } from '@/networks/pika-network/schemas';
+import {
+  PikaNetworkEventPageSchema,
+  PikaNetworkLeaderboardResponseSchema,
+  PikaNetworkPlayerEventsSchema,
+  PikaNetworkPlayerFightsSchema,
+  PikaNetworkPlayerHistorySchema,
+  PikaNetworkRecapResponseSchema,
+  PikaNetworkTeamDetailSchema,
+  PikaNetworkTeamHistorySchema,
+} from '@/networks/pika-network/schemas';
 import { withStatKeyAccessor, type ProfileStat } from '@/networks/pika-network/types';
+import type { PikaNetworkGamemode } from '@/networks/pika-network/enums';
 
 describe('Craftify API Wrapper Fixes', () => {
   it('rate limiter provides automatic rate recovery and FIFO ordering', async () => {
@@ -17,15 +27,12 @@ describe('Craftify API Wrapper Fixes', () => {
       recoveryCooldownMs: 50,
     });
 
-    // Simulate 429
     limiter.onRateLimited();
     expect(limiter.currentRatePerSecond).toBe(50);
 
-    // Wait for cooldown to pass and acquire
     await new Promise((r) => setTimeout(r, 60));
     await limiter.acquire();
 
-    // Rate should recover towards 100
     expect(limiter.currentRatePerSecond).toBeGreaterThan(50);
   });
 
@@ -53,6 +60,78 @@ describe('Craftify API Wrapper Fixes', () => {
       expect(parsed.data.entries?.[0]?.clan).toBeNull();
       expect(parsed.data.entries?.[0]?.value).toBe(500);
     }
+  });
+
+  it('team and event schemas accept live nullable fields', () => {
+    expect(
+      PikaNetworkTeamDetailSchema.safeParse({
+        place: null,
+        team: {
+          headlineValue: null,
+          members: [{ user: { username: 'player' }, role: 'LEADER', active: true }],
+        },
+      }).success,
+    ).toBe(true);
+    expect(
+      PikaNetworkTeamHistorySchema.safeParse({
+        gamemode: 'opfactions',
+        points: [{ headlineValue: null, place: null }],
+      }).success,
+    ).toBe(true);
+    expect(
+      PikaNetworkEventPageSchema.safeParse({
+        total: 1,
+        events: [
+          {
+            id: '00000000-0000-0000-0000-000000000000',
+            map: null,
+            mapName: null,
+            teamSize: null,
+          },
+        ],
+      }).success,
+    ).toBe(true);
+  });
+
+  it('supports supplied live recap and private-player response shapes', () => {
+    expect(
+      PikaNetworkRecapResponseSchema.safeParse({
+        id: '0e946551-12a8-4db1-a097-10da7ade35ad',
+        users: [
+          { username: 'player1', stats: { kills: 12, wins: '1' } },
+          { username: 'player2', stats: { kills: '5', deaths: 8 } },
+        ],
+        winners: ['player1'],
+      }).success,
+    ).toBe(true);
+
+    expect(
+      PikaNetworkPlayerHistorySchema.safeParse({
+        type: 'bedwars',
+        series: [{ stat: 7, name: 'Wins', points: [{ date: '2026-10-30', value: 2 }] }],
+      }).success,
+    ).toBe(true);
+
+    expect(
+      PikaNetworkPlayerEventsSchema.safeParse({
+        summary: {
+          played: 0,
+          wins: 0,
+          podiums: 0,
+          bestPlacement: null,
+        },
+        events: [],
+      }).success,
+    ).toBe(true);
+
+    expect(
+      PikaNetworkPlayerFightsSchema.safeParse({
+        days: 30,
+        kills: 0,
+        deaths: 0,
+        recent: [],
+      }).success,
+    ).toBe(true);
   });
 
   it('withStatKeyAccessor indexes stats for O(1) reads without mutating input', () => {
@@ -83,8 +162,11 @@ describe('Craftify API Wrapper Fixes', () => {
     );
 
     expect(() =>
-      // @ts-expect-error test runtime validation on invalid gamemode
-      assertValidCombination('invalid_gamemode', 'ALL_MODES', 'total'),
+      assertValidCombination(
+        'invalid_gamemode' as PikaNetworkGamemode,
+        'ALL_MODES',
+        'total',
+      ),
     ).toThrow(RangeError);
   });
 

@@ -1,6 +1,17 @@
-import { PikaNetworkClanResponseSchema } from '@/networks/pika-network/schemas';
-import type { PikaNetworkMixinConstructor } from '@/networks/pika-network/mixins/mixin-constructor';
-import type { PikaNetworkClanResponse } from '@/networks/pika-network/types';
+import { assertMaximumListItems } from '@/networks/pika-network/request-validation';
+import {
+  PikaNetworkClanMembersSchema,
+  PikaNetworkClanResponseSchema,
+} from '@/networks/pika-network/schemas';
+import type {
+  PikaNetworkMixinConstructor,
+  PikaNetworkMixinResult,
+} from '@/networks/pika-network/mixins/mixin-constructor';
+import type {
+  GetClanMembersParams,
+  PikaNetworkClanMemberStatsResponse,
+  PikaNetworkClanResponse,
+} from '@/networks/pika-network/types';
 import type { BatchOptions, BatchResult, RequestConfig } from '@/types';
 
 export interface ClansMixin {
@@ -13,17 +24,20 @@ export interface ClansMixin {
     config?: RequestConfig,
     options?: BatchOptions,
   ): Promise<BatchResult<PikaNetworkClanResponse | null>[]>;
+  getPlayerClan(
+    username: string,
+    config?: RequestConfig,
+  ): Promise<PikaNetworkClanResponse | null>;
+  getClanMembers(
+    parameters: GetClanMembersParams,
+    config?: RequestConfig,
+  ): Promise<PikaNetworkClanMemberStatsResponse[]>;
 }
 
 export function withClans<TBase extends PikaNetworkMixinConstructor>(
   Base: TBase,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): TBase & (abstract new (...arguments_: any[]) => ClansMixin) {
+): PikaNetworkMixinResult<TBase, ClansMixin> {
   abstract class WithClans extends Base implements ClansMixin {
-    /**
-     * returns `null` when the clan does not exist;
-     * HACK (unsure): the response schema is intentionally permissive.
-     */
     async getClan(
       clanName: string,
       config?: RequestConfig,
@@ -37,11 +51,6 @@ export function withClans<TBase extends PikaNetworkMixinConstructor>(
       );
     }
 
-    /**
-     * clan batch requests
-     *
-     * preserves input order and returns an independent result for each lookup.
-     */
     async getClans(
       clanNames: string[],
       config?: RequestConfig,
@@ -51,6 +60,42 @@ export function withClans<TBase extends PikaNetworkMixinConstructor>(
         clanNames.map((clanName) => () => this.getClan(clanName, config)),
         options,
       );
+    }
+
+    async getPlayerClan(
+      username: string,
+      config?: RequestConfig,
+    ): Promise<PikaNetworkClanResponse | null> {
+      const query = new URLSearchParams({ username });
+      const url = `${this.baseUrl}/clans?${query.toString()}`;
+      return this.fetchAndValidate(
+        `pika-network:player-clan:${username.toLowerCase()}`,
+        url,
+        PikaNetworkClanResponseSchema,
+        config,
+      );
+    }
+
+    async getClanMembers(
+      parameters: GetClanMembersParams,
+      config?: RequestConfig,
+    ): Promise<PikaNetworkClanMemberStatsResponse[]> {
+      const { clanName, stats } = parameters;
+      const query = new URLSearchParams();
+      if (stats) {
+        assertMaximumListItems(stats, 'stats', 20);
+        const values = Array.isArray(stats) ? stats : stats.split(',');
+        if (values.length > 0) query.set('stats', values.join(','));
+      }
+      const suffix = query.size > 0 ? `?${query.toString()}` : '';
+      const url = `${this.baseUrl}/clans/${encodeURIComponent(clanName)}/members${suffix}`;
+      const raw = await this.fetchAndValidate(
+        `pika-network:clan-members:${clanName.toLowerCase()}:${query.toString()}`,
+        url,
+        PikaNetworkClanMembersSchema,
+        config,
+      );
+      return raw ?? [];
     }
   }
 

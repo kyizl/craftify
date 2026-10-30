@@ -1,26 +1,8 @@
-/**
- * proactive token-bucket rate limiter for APIs that provide no `RateLimit-*` headers
- *
- * features strict FIFO queuing to prevent starvation and automatic rate recovery
- * to restore bandwidth after 429 throttling events.
- */
 export interface RateLimiterOptions {
-  /**
-   * sustained request rate, in reqs/sec
-   * default: 60 (or per-network default such as 350 for PikaNetwork)
-   */
   ratePerSecond?: number;
 
-  /**
-   * maximum burst capacity
-   */
   burst?: number;
 
-  /**
-   * ms of elapsed time after a 429 without further throttles
-   * before gradually ramping rate back to original capacity.
-   * default: 5000ms
-   */
   recoveryCooldownMs?: number;
 }
 
@@ -52,8 +34,10 @@ export class TokenBucketRateLimiter {
     const elapsed = now - this.lastRefillMs;
     if (elapsed <= 0) return;
 
-    // Automatic rate recovery if throttled previously and cooldown has passed
-    if (this.ratePerMs < this.initialRatePerMs && now - this.lastRateLimitMs > this.recoveryCooldownMs) {
+    if (
+      this.ratePerMs < this.initialRatePerMs &&
+      now - this.lastRateLimitMs > this.recoveryCooldownMs
+    ) {
       const recoveredRate = this.ratePerMs * 1.5;
       this.ratePerMs = Math.min(this.initialRatePerMs, recoveredRate);
     }
@@ -81,9 +65,6 @@ export class TokenBucketRateLimiter {
     }
   }
 
-  /**
-   * resolves once a token is available in FIFO order, consuming it
-   */
   acquire(): Promise<void> {
     this.refillTokens();
 
@@ -98,10 +79,6 @@ export class TokenBucketRateLimiter {
     });
   }
 
-  /**
-   * halves the rate and drains the bucket on 429 responses.
-   * automatically ramps back up after `recoveryCooldownMs` without subsequent 429s.
-   */
   onRateLimited(): void {
     this.ratePerMs = Math.max(this.ratePerMs * 0.5, 0.05 / 1000);
     this.tokens = 0;
@@ -114,9 +91,6 @@ export class TokenBucketRateLimiter {
     this.processQueue();
   }
 
-  /**
-   * returns current effective rate in requests per second
-   */
   get currentRatePerSecond(): number {
     return this.ratePerMs * 1000;
   }

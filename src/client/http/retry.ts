@@ -3,19 +3,15 @@ import { logger } from '@/client/logger';
 import { defaultRetryBackoff } from '@/client/retry-backoff';
 import type { TokenBucketRateLimiter } from '@/client/rate-limiter';
 
-/**
- * internal signal used to distinguish retryable status codes (429/5xx) from unhandled errors.
- * consumed by `withRetry`, and is not propagated to the caller.
- */
 export class RetrySignal extends Error {
-  constructor(readonly isRateLimit: boolean) {
+  constructor(
+    readonly isRateLimit: boolean,
+    readonly retryAfterMs?: number,
+  ) {
     super('retryable');
   }
 }
 
-/**
- * checks whether an error is a transient network/transport error that should be retried.
- */
 export function isRetryableNetworkError(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false;
 
@@ -55,10 +51,6 @@ export function isRetryableNetworkError(error: unknown): boolean {
   return false;
 }
 
-/**
- * executes `attempt`, retrying retryable failures (429/5xx and transient network dropouts)
- * with jittered exponential backoff and AbortSignal support.
- */
 export async function withRetry<T>(
   attempt: () => Promise<T>,
   rateLimiter: TokenBucketRateLimiter,
@@ -68,7 +60,9 @@ export async function withRetry<T>(
   return pRetry(
     async () => {
       if (signal?.aborted) {
-        throw new AbortError(new DOMException('This operation was aborted', 'AbortError'));
+        throw new AbortError(
+          new DOMException('This operation was aborted', 'AbortError'),
+        );
       }
       try {
         return await attempt();
@@ -77,7 +71,12 @@ export async function withRetry<T>(
           throw new AbortError(error as Error);
         }
         if (error instanceof RetrySignal) {
-          if (error.isRateLimit) rateLimiter.onRateLimited();
+          if (error.isRateLimit) {
+            rateLimiter.onRateLimited();
+            if (error.retryAfterMs !== undefined) {
+              await waitForRetry(error.retryAfterMs, signal);
+            }
+          }
           throw error;
         }
         if (isRetryableNetworkError(error)) {
@@ -95,9 +94,33 @@ export async function withRetry<T>(
       randomize: defaultRetryBackoff.randomize,
       onFailedAttempt: ({ attemptNumber, retriesLeft, error }) => {
         logger.warn(
-          `Attempt ${String(attemptNumber)} failed (${(error)?.message || error}), ${String(retriesLeft)} retries left`,
+          `Attempt ${String(attemptNumber)} failed (${error?.message || error}), ${String(retriesLeft)} retries left`,
         );
       },
     },
   );
+}
+
+function waitForRetry(delayMs: number, signal?: AbortSignal): Promise<void> {
+  if (delayMs <= 0) return Promise.resolve();
+  if (signal?.aborted) {
+    return Promise.reject(
+      new AbortError(new DOMException('This operation was aborted', 'AbortError')),
+    );
+  }
+
+  return new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
+      resolve();
+    }, delayMs);
+    const onAbort = () => {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
+      reject(
+        new AbortError(new DOMException('This operation was aborted', 'AbortError')),
+      );
+    };
+    signal?.addEventListener('abort', onAbort, { once: true });
+  });
 }

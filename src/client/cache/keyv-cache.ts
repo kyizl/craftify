@@ -1,10 +1,6 @@
 import { Keyv } from 'keyv';
 import type { NetworkCache } from '@/client/cache/network-cache';
 
-/**
- * uses keyv's in-memory adapter by default.
- * pass a persistent adapter such as @keyv/redis for shared or persistent caching.
- */
 export class KeyvCache implements NetworkCache {
   private readonly store: Keyv;
 

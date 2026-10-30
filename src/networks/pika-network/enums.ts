@@ -9,17 +9,32 @@ export const PikaNetworkGamemodes = [
   'opprison',
   'opskyblock',
   'pillars',
+  'rankedpractice',
   'skymines',
+  'skywars',
   'skypvp',
   'survival',
   'unrankedpractice',
+  'wildkits',
 ] as const;
 
 export type PikaNetworkGamemode = (typeof PikaNetworkGamemodes)[number];
 
-/**
- * valid `mode` values per gamemode
- */
+export const PikaNetworkTeamModes = [
+  'opfactions',
+  'opskyblock',
+  'oneblock',
+  'skymines',
+  'opprison',
+  'kitpvp',
+  'skypvp',
+  'genpvp',
+  'survival',
+  'oplifesteal',
+] as const;
+
+export type PikaNetworkTeamMode = (typeof PikaNetworkTeamModes)[number];
+
 export const PikaNetworkModes = {
   bedwars: ['ALL_MODES', 'DOUBLES', 'QUAD', 'SOLO', 'TRIPLES'],
   dungeons: ['ALL_MODES'],
@@ -31,7 +46,9 @@ export const PikaNetworkModes = {
   opprison: ['ALL_MODES'],
   opskyblock: ['ALL_MODES'],
   pillars: ['Seasonal'],
+  rankedpractice: ['ALL_MODES'],
   skymines: ['ALL_MODES'],
+  skywars: ['ALL_MODES'],
   skypvp: ['ALL_MODES'],
   survival: ['ALL_MODES'],
   unrankedpractice: [
@@ -62,6 +79,7 @@ export const PikaNetworkModes = {
     'THE_BRIDGE',
     'VOID_FIGHT',
   ],
+  wildkits: ['ALL_MODES'],
 } as const satisfies Record<PikaNetworkGamemode, readonly string[]>;
 
 export type PikaNetworkMode<G extends PikaNetworkGamemode> =
@@ -145,6 +163,7 @@ export const PikaNetworkStats = {
     PRISON_RAW_BLOCKS_BROKEN: 'Raw Blocks Broken',
     PRISON_TOKEN_BALANCE: 'Tokens',
   },
+  rankedpractice: {},
   opskyblock: {
     ADVENTURER_SKILL_LEVEL: 'Adventurer Skill Level',
     ALCHEMIST_SKILL_LEVEL: 'Alchemist Skill Level',
@@ -176,6 +195,7 @@ export const PikaNetworkStats = {
     kills: 'Kills',
     PLAYER_LEVEL: 'Player Level',
   },
+  skywars: {},
   skypvp: {
     balance: 'Balance',
     CURRENT_KILLSTREAK: 'Current Killstreak',
@@ -201,14 +221,12 @@ export const PikaNetworkStats = {
     VOID_KILLS: 'Void kills',
     wins: 'Wins',
   },
+  wildkits: {},
 } as const satisfies Record<PikaNetworkGamemode, Record<string, string | null>>;
 
 export type PikaNetworkStat<G extends PikaNetworkGamemode> =
   keyof (typeof PikaNetworkStats)[G];
 
-/**
- * querying the alias returns the same data as the canonical stat
- */
 export const PikaNetworkStatAliases = {
   bedwars: {
     PROJECTILE_KILLS: 'BOW_KILLS',
@@ -218,10 +236,6 @@ export const PikaNetworkStatAliases = {
 export const PikaNetworkIntervals = ['total', 'weekly', 'monthly', 'yearly'] as const;
 export type PikaNetworkInterval = (typeof PikaNetworkIntervals)[number];
 
-/**
- * interval=yearly doesn't work outside these gamemodes.
- * enforced at the type and request level.
- */
 export const YearlyCapableGamemodes = [
   'bedwars',
   'unrankedpractice',
@@ -231,9 +245,6 @@ export const PikaNetworkRequiredMode = {
   pillars: 'Seasonal',
 } as const;
 
-/**
- * ergonomic alias
- */
 export const Gamemode = {
   BedWars: 'bedwars',
   Dungeons: 'dungeons',
@@ -245,10 +256,13 @@ export const Gamemode = {
   OpPrison: 'opprison',
   OpSkyBlock: 'opskyblock',
   Pillars: 'pillars',
+  RankedPractice: 'rankedpractice',
   SkyMines: 'skymines',
+  SkyWars: 'skywars',
   SkyPvp: 'skypvp',
   Survival: 'survival',
   UnrankedPractice: 'unrankedpractice',
+  WildKits: 'wildkits',
 } as const satisfies Record<string, PikaNetworkGamemode>;
 
 export const Interval = {
@@ -293,7 +307,13 @@ export const Mode = {
   Pillars: {
     Seasonal: 'Seasonal',
   },
+  RankedPractice: {
+    AllModes: 'ALL_MODES',
+  },
   SkyMines: {
+    AllModes: 'ALL_MODES',
+  },
+  SkyWars: {
     AllModes: 'ALL_MODES',
   },
   SkyPvp: {
@@ -329,6 +349,9 @@ export const Mode = {
     Sword: 'SWORD',
     TheBridge: 'THE_BRIDGE',
     VoidFight: 'VOID_FIGHT',
+  },
+  WildKits: {
+    AllModes: 'ALL_MODES',
   },
 } as const;
 
@@ -432,6 +455,7 @@ export const Stat = {
     Played: 'played',
     Wins: 'wins',
   },
+  RankedPractice: {},
   SkyMines: {
     BlocksMined: 'BLOCKS_MINED',
     BossesKilled: 'BOSSES_KILLED',
@@ -441,6 +465,7 @@ export const Stat = {
     Balance: 'balance',
     Kills: 'kills',
   },
+  SkyWars: {},
   SkyPvp: {
     CurrentKillstreak: 'CURRENT_KILLSTREAK',
     Deaths: 'DEATHS',
@@ -466,6 +491,7 @@ export const Stat = {
     Played: 'played',
     Wins: 'wins',
   },
+  WildKits: {},
 } as const;
 
 export const StatKey = {
@@ -566,6 +592,7 @@ export const StatKey = {
     Played: 'Games played',
     Wins: 'Wins',
   },
+  RankedPractice: {},
   SkyMines: {
     Balance: 'Balance',
     BlocksMined: 'Blocks Mined',
@@ -575,6 +602,7 @@ export const StatKey = {
     Kills: 'Kills',
     PlayerLevel: 'Player Level',
   },
+  SkyWars: {},
   SkyPvp: {
     Balance: 'Balance',
     CurrentKillstreak: 'Current Killstreak',
@@ -600,6 +628,7 @@ export const StatKey = {
     VoidKills: 'Void kills',
     Wins: 'Wins',
   },
+  WildKits: {},
 } as const;
 
 export type PikaNetworkStatKey<G extends PikaNetworkGamemode> = Exclude<

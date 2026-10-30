@@ -2,13 +2,17 @@ import {
   assertValidCombination,
   resolveDefaultMode,
 } from '@/networks/pika-network/guards';
+import { assertSafeInteger } from '@/networks/pika-network/request-validation';
 import { PikaNetworkProfileStatsResponseSchema } from '@/networks/pika-network/schemas';
 import { withStatKeyAccessor } from '@/networks/pika-network/types';
 import type {
   PikaNetworkGamemode,
   PikaNetworkStatKey,
 } from '@/networks/pika-network/enums';
-import type { PikaNetworkMixinConstructor } from '@/networks/pika-network/mixins/mixin-constructor';
+import type {
+  PikaNetworkMixinConstructor,
+  PikaNetworkMixinResult,
+} from '@/networks/pika-network/mixins/mixin-constructor';
 import type {
   GetProfileStatsParams,
   ProfileStat,
@@ -35,13 +39,8 @@ export interface ProfileStatsMixin {
 
 export function withProfileStats<TBase extends PikaNetworkMixinConstructor>(
   Base: TBase,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): TBase & (abstract new (...arguments_: any[]) => ProfileStatsMixin) {
+): PikaNetworkMixinResult<TBase, ProfileStatsMixin> {
   abstract class WithProfileStats extends Base implements ProfileStatsMixin {
-    /**
-     * returns an empty array (not an error) for a player who exists
-     * but has never played that gamemode/mode.
-     */
     async getProfileStats<G extends PikaNetworkGamemode = PikaNetworkGamemode>(
       parameters: GetProfileStatsParams<G>,
       config?: RequestConfig,
@@ -51,17 +50,23 @@ export function withProfileStats<TBase extends PikaNetworkMixinConstructor>(
         gamemode,
         mode = resolveDefaultMode(gamemode),
         interval = 'total',
+        season,
       } = parameters;
       assertValidCombination(gamemode, mode, interval);
+      if (season !== undefined) assertSafeInteger(season, 'season');
+      if (season !== undefined && interval !== 'total') {
+        throw new RangeError('Historical seasons only support the total interval');
+      }
 
       const query = new URLSearchParams({
         type: gamemode,
         interval,
         mode,
       });
+      if (season !== undefined) query.set('season', String(season));
 
       const url = `${this.baseUrl}/profile/${encodeURIComponent(username)}/leaderboard?${query.toString()}`;
-      const cacheKey = `pika-network:profile-stats:${username.toLowerCase()}:${gamemode}:${mode}:${interval}`;
+      const cacheKey = `pika-network:profile-stats:${username.toLowerCase()}:${gamemode}:${mode}:${interval}:${season ?? 'current'}`;
 
       const raw = await this.fetchAndValidate(
         cacheKey,
@@ -82,12 +87,6 @@ export function withProfileStats<TBase extends PikaNetworkMixinConstructor>(
       return withStatKeyAccessor(results);
     }
 
-    /**
-     * use the `StatKey` ergonomic constant for autocomplete;
-     * e.g. `StatKey.BedWars.FinalKills`.
-     *
-     * `null` if the player has no score for it.
-     */
     async getProfileStat<G extends PikaNetworkGamemode = PikaNetworkGamemode>(
       parameters: GetProfileStatsParams<G>,
       statKey: PikaNetworkStatKey<G> | string,
@@ -97,11 +96,6 @@ export function withProfileStats<TBase extends PikaNetworkMixinConstructor>(
       return stats.find((stat) => stat.statKey === statKey) ?? null;
     }
 
-    /**
-     * profile stats batch requests
-     *
-     * preserves input order and returns an independent result for each lookup.
-     */
     async getProfileStatsBatch(
       requests: GetProfileStatsParams<PikaNetworkGamemode>[],
       config?: RequestConfig,

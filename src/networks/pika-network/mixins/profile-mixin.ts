@@ -1,5 +1,8 @@
 import { PikaNetworkProfileResponseSchema } from '@/networks/pika-network/schemas';
-import type { PikaNetworkMixinConstructor } from '@/networks/pika-network/mixins/mixin-constructor';
+import type {
+  PikaNetworkMixinConstructor,
+  PikaNetworkMixinResult,
+} from '@/networks/pika-network/mixins/mixin-constructor';
 import type { PikaNetworkProfileResponse } from '@/networks/pika-network/types';
 import type { BatchOptions, BatchResult, RequestConfig } from '@/types';
 
@@ -17,12 +20,8 @@ export interface ProfileMixin {
 
 export function withProfile<TBase extends PikaNetworkMixinConstructor>(
   Base: TBase,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): TBase & (abstract new (...arguments_: any[]) => ProfileMixin) {
+): PikaNetworkMixinResult<TBase, ProfileMixin> {
   abstract class WithProfile extends Base implements ProfileMixin {
-    /**
-     * returns `null` if the username doesn't exist
-     */
     async getProfile(
       username: string,
       config?: RequestConfig,
@@ -36,11 +35,6 @@ export function withProfile<TBase extends PikaNetworkMixinConstructor>(
       );
     }
 
-    /**
-     * profile batch requests
-     *
-     * preserves input order and returns an independent result for each lookup.
-     */
     async getProfiles(
       usernames: string[],
       config?: RequestConfig,

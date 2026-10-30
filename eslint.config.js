@@ -46,7 +46,7 @@ export default defineConfig(
         'error',
         { prefer: 'type-imports', fixStyle: 'inline-type-imports' },
       ],
-      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-explicit-any': ['error', { ignoreRestArgs: true }],
       '@typescript-eslint/restrict-template-expressions': 'off',
       '@typescript-eslint/no-unnecessary-condition': 'off',
       'unicorn/prevent-abbreviations': 'off',
@@ -70,6 +70,12 @@ export default defineConfig(
       'import-x/no-unresolved': ['error', { ignore: ['typedoc-sidebar\\.json$'] }],
       'import-x/no-cycle': 'error',
       'import-x/no-self-import': 'error',
+    },
+  },
+  {
+    files: ['src/networks/pika-network/schemas.ts'],
+    rules: {
+      'unicorn/max-nested-calls': 'off',
     },
   },
   {

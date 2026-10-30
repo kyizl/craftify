@@ -1,5 +1,6 @@
 export {
   NetworkClient,
+  type NetworkResponseMetadata,
   TokenBucketRateLimiter,
   setLogLevel,
   type NetworkClientOptions,
@@ -10,5 +11,3 @@ export * from '@/errors';
 export * from '@/types';
 
 export * from '@/networks/pika-network';
-
-// IDEA: implement JartexNetwork
