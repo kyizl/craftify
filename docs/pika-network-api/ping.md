@@ -32,7 +32,7 @@ curl 'https://stats.pika-network.net/api/ping'
 ```ts [craftify]
 import { PikaNetworkClient } from '@kyizl/craftify';
 
-const pika = new PikaNetworkClient();
+const pika = new PikaNetworkClient({ apiKey: process.env.PIKA_API_KEY! });
 
 const healthy = await pika.ping();
 ```

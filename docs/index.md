@@ -31,7 +31,7 @@ features:
 ```ts
 import { Gamemode, PikaNetworkClient, Stat } from '@kyizl/craftify';
 
-const client = new PikaNetworkClient();
+const client = new PikaNetworkClient({ apiKey: process.env.PIKA_API_KEY! });
 
 const leaderboard = await client.getLeaderboard({
   gamemode: Gamemode.BedWars,

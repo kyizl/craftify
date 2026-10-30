@@ -42,7 +42,7 @@ curl 'https://stats.pika-network.net/api/recaps/8b17beb5-e8be-489f-b083-fed74ad8
 ```ts [craftify]
 import { PikaNetworkClient } from '@kyizl/craftify';
 
-const pika = new PikaNetworkClient();
+const pika = new PikaNetworkClient({ apiKey: process.env.PIKA_API_KEY! });
 
 const recap = await pika.getMatchRecap('8b17beb5-e8be-489f-b083-fed74ad8d7d7');
 ```

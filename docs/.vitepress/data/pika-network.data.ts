@@ -32,7 +32,7 @@ export default {
     return {
       gamemodeCount: PikaNetworkGamemodes.length,
       gamemodes: PikaNetworkGamemodes,
-      totalStatCount: Object.values(PikaNetworkStats).reduce(
+      totalStatCount: Object.values(PikaNetworkStats).reduce<number>(
         (sum, stats) => sum + Object.keys(stats).length,
         0,
       ),

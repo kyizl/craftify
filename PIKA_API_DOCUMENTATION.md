@@ -12,7 +12,7 @@ https://stats.pika-network.net/api
 
 ## Auth
 
-**None.** No API key, no token, no per-key quota. Rate-limited by IP only.
+Every request requires an API key in the `X-Api-Key` header. Link Discord in-game with `/linkaccount`, then use `/apikey` to generate a key. Keys do not expire. Reset a leaked key with `/apikey reset`. Missing or invalid keys receive `401`.
 
 ## Content type
 
@@ -50,19 +50,43 @@ Implemented in `src/client/http/status.ts`:
 
 ## Rate limits
 
-**Undocumented upstream.** No `RateLimit-*` or `Retry-After` response headers. This package defaults to **350 req/s, burst 16**, derived from load testing, not a published SLA. See [Rate Limiting guide](docs/guide/rate-limiting.md).
+The documented limit is **120 requests per minute per key**. Responses include `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset`; `429` responses include `Retry-After`. The client defaults to 2 requests/second with a burst of 1 and retries rate-limited requests. See [Rate Limiting guide](docs/guide/rate-limiting.md).
 
 ## Endpoints
 
-| Endpoint                                            | Method | Description              |
-| --------------------------------------------------- | ------ | ------------------------ |
-| [`/leaderboards`](#leaderboards)                    | `GET`  | paginated global ranking |
-| [`/leaderboards/total`](#totals)                    | `GET`  | server-wide aggregate    |
-| [`/profile/{username}`](#profile)                   | `GET`  | account profile          |
-| [`/profile/{username}/leaderboard`](#profile-stats) | `GET`  | per-player stats         |
-| [`/clans/{clanName}`](#clans)                       | `GET`  | clan profile             |
-| [`/recaps/{gameId}`](#match-recaps)                 | `GET`  | match recap              |
-| [`/ping`](#ping)                                    | `GET`  | liveness check           |
+| Endpoint                           | Method | Description                      |
+| ---------------------------------- | ------ | -------------------------------- |
+| `/profile/{username}`              | `GET`  | profile                          |
+| `/profile/{username}/leaderboard`  | `GET`  | per-mode stats                   |
+| `/profile/{username}/history`      | `GET`  | daily stat progression           |
+| `/profile/{username}/events`       | `GET`  | player event history             |
+| `/profile/{username}/fights`       | `GET`  | player PvP history               |
+| `/players/{username}/teams`        | `GET`  | player's groups by mode          |
+| `/leaderboards`                    | `GET`  | paginated ranking                |
+| `/leaderboards/total`              | `GET`  | totals for every stat            |
+| `/leaderboards/stats`              | `GET`  | stat id catalog                  |
+| `/leaderboards/movers`             | `GET`  | biggest daily/weekly gains       |
+| `/teams/{mode}/top`                | `GET`  | ranked groups                    |
+| `/teams/{mode}/{entityId}`         | `GET`  | group detail                     |
+| `/teams/{mode}/stats`              | `GET`  | group stat catalog               |
+| `/teams/{mode}/{entityId}/history` | `GET`  | group snapshot history           |
+| `/teams/vs`                        | `GET`  | compare two groups               |
+| `/clans/{name}`                    | `GET`  | BedWars guild detail             |
+| `/clans/{name}/members`            | `GET`  | guild members and BedWars totals |
+| `/clans?username={username}`       | `GET`  | player's guild                   |
+| `/events`                          | `GET`  | event list                       |
+| `/events/{id}`                     | `GET`  | event standings                  |
+| `/events/winners`                  | `GET`  | event win rankings               |
+| `/events/types`                    | `GET`  | event type catalog               |
+| `/fights?mode={mode}`              | `GET`  | recent PvP kills                 |
+| `/fights/stats?mode={mode}`        | `GET`  | PvP statistics                   |
+| `/fights/{id}`                     | `GET`  | fight detail and loadouts        |
+| `/seasons`                         | `GET`  | past seasons by mode             |
+| `/seasons/details`                 | `GET`  | season start/end dates           |
+| `/recaps/{gameId}`                 | `GET`  | match recap                      |
+| `/ping`                            | `GET`  | liveness check                   |
+
+See the [complete endpoint and client-method reference](docs/pika-network-api/endpoints.md) for query parameters and response types.
 
 ---
 
@@ -79,7 +103,7 @@ Global paginated ranking for one stat, one gamemode, one mode.
 | `mode`     | `string` | recommended  | not crawled without this param; unconfirmed if omittable        |
 | `interval` | `string` | optional     | `total` \| `weekly` \| `monthly` \| `yearly`, default `total`   |
 | `offset`   | `number` | optional     | zero-indexed, default `0`                                       |
-| `limit`    | `number` | optional     | requested page size, **hard-capped at 15** server-side          |
+| `limit`    | `number` | optional     | requested page size, **hard-capped at 25** server-side          |
 
 `interval=yearly` valid only for gamemodes marked yearly-capable in the [catalog](#gamemode-catalog). Other gamemodes: `200` with empty result, not `400`.
 

@@ -2,8 +2,6 @@
 
 Typed, runtime-validated API client for CraftiGames stats networks. PikaNetwork is fully implemented; JartexNetwork is planned on top of the same network-agnostic foundation.
 
-
-
 ## Install
 
 ```bash
@@ -15,7 +13,10 @@ npm install @kyizl/craftify
 ```ts
 import { Gamemode, PikaNetworkClient, Stat } from '@kyizl/craftify';
 
-const pika = new PikaNetworkClient();
+const apiKey = process.env.PIKA_API_KEY;
+if (!apiKey) throw new Error('PIKA_API_KEY is required');
+
+const pika = new PikaNetworkClient({ apiKey });
 
 const leaderboard = await pika.getLeaderboard({
   gamemode: Gamemode.BedWars,
@@ -29,9 +30,8 @@ const stats = await pika.getProfileStats({
 });
 const finals = stats.StatKey.BedWars.FinalKills;
 
-const profile = await pika.getProfile('divena'); // null if the username doesn't exist
+const profile = await pika.getProfile('divena');
 
-// many players at once, concurrency-bounded, still rate-limited underneath
 const profiles = await pika.getProfiles(['divena', 'Notch', 'jeb_']);
 ```
 
@@ -43,12 +43,9 @@ await pika.getLeaderboard({
   stat: 'PRISON_TOKEN_BALANCE',
   mode: 'SOLO',
 });
-// RangeError: "SOLO" is not a valid mode for gamemode "opprison". Valid modes: ALL_MODES
 ```
 
 See the [Getting Started](docs/guide/getting-started.md), [Gamemodes and Enums](docs/guide/gamemodes-and-enums.md), [Ergonomic Constants](docs/guide/ergonomic-constants.md), [Batch Requests](docs/guide/batch-requests.md), and [Rate Limiting](docs/guide/rate-limiting.md) guides for the full picture, or browse the live documentation site linked from the [API Reference](docs/api/index.md).
-
-
 
 ## Documentation
 

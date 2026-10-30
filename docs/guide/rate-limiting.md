@@ -11,15 +11,15 @@ import { data } from '../.vitepress/data/pika-network.data';
 
 Read this before changing the defaults.
 
-`PikaNetworkClient` defaults to a token-bucket limiter of **{{ data.defaultRateLimit.ratePerSecond }} requests/second**, burst **{{ data.defaultRateLimit.burst }}** (`PikaNetworkDefaultRateLimit`, applied via the `rateLimit` option). This is derived from load-testing against the live API; there's no official PikaNetwork spec for it.
+PikaNetwork documents a limit of **120 requests per minute per API key**. Responses include `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset`; `429` responses include `Retry-After`. `PikaNetworkClient` defaults to **{{ data.defaultRateLimit.ratePerSecond }} requests/second**, burst **{{ data.defaultRateLimit.burst }}**, matching the published quota while avoiding an initial burst above it.
 
 ## Why proactive, not reactive
 
-PikaNetwork's API returns no `RateLimit-*` response headers, so there's nothing to read and react to after the fact. Instead, every request acquires a token from a [`TokenBucketRateLimiter`](/api/classes/TokenBucketRateLimiter) before it's sent. Requests simply wait for a token to become available rather than firing and finding out afterward that they were too fast.
+Every request acquires a token from a [`TokenBucketRateLimiter`](/api/classes/TokenBucketRateLimiter) before it's sent. The client also honors upstream `429` responses with retry backoff.
 
 ## The 429 backoff is still there underneath
 
-Even with the proactive limiter, a `429` can still happen (clock drift, another process sharing the same IP, PikaNetwork tightening limits without notice). When it does:
+Even with the proactive limiter, a `429` can still happen if another process uses the same key. When it does:
 
 1. The rate limiter's `onRateLimited()` halves its rate and drains the bucket, so subsequent requests, including unrelated ones sharing the same client instance, immediately slow down.
 2. The request itself retries with jittered exponential backoff: factor **{{ data.retryBackoff.factor }}**, between **{{ data.retryBackoff.minTimeoutMs }}ms** and **{{ data.retryBackoff.maxTimeoutMs }}ms**, up to `maxRetries` attempts (default **{{ data.defaultMaxRetries }}**).
@@ -33,7 +33,7 @@ const pika = new PikaNetworkClient({
 });
 ```
 
-Only turn this up if your own testing against the live API says the defaults are unnecessarily conservative for your use case. Turning it up carelessly risks tripping PikaNetwork's actual, undocumented limit, which is exactly what the proactive limiter exists to avoid.
+Keep the aggregate traffic for a key at or below 120 requests per minute. Multiple client instances using the same key have independent local limiters and should be coordinated by the application.
 
 ## Other relevant defaults
 

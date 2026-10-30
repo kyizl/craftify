@@ -25,9 +25,9 @@ https://stats.pika-network.net/api
 
 ## Auth
 
-<Badge type="danger" text="none" />
+<Badge type="warning" text="required" />
 
-No API key, no token, no per-key quota. Rate-limited by IP only.
+Every request requires the `X-Api-Key` header. Create a key in-game with `/apikey` after linking Discord with `/linkaccount`. Pass it to `new PikaNetworkClient({ apiKey })` and keep it out of source control.
 
 ## Content type
 
@@ -67,9 +67,7 @@ Coerce both to `number` at the parse boundary. Do not assume one or the other.
 
 ## Rate limits
 
-::: warning undocumented
-No `RateLimit-*` or `Retry-After` response headers. This package defaults to **350 req/s, burst 16**, derived from load testing, not a published SLA. See [Rate Limiting](/guide/rate-limiting).
-:::
+The published limit is **120 requests per minute per key**. Responses expose `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset`; `429` responses include `Retry-After`. The client defaults to 2 requests/second with a burst of 1. See [Rate Limiting](/guide/rate-limiting).
 
 ## Crawl coverage
 
@@ -116,6 +114,11 @@ No `RateLimit-*` or `Retry-After` response headers. This package defaults to **3
 <a href="./ping" class="craftify-endpoint-card">
   <div class="craftify-endpoint-card-head"><Badge type="info" text="GET" /><code>/ping</code></div>
   <p>liveness check</p>
+</a>
+
+<a href="./endpoints" class="craftify-endpoint-card">
+  <div class="craftify-endpoint-card-head"><Badge type="tip" text="reference" /><code>complete endpoint reference</code></div>
+  <p>all routes, client methods, parameters, and response types</p>
 </a>
 
 <a href="./gamemode-catalog" class="craftify-endpoint-card">

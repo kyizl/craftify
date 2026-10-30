@@ -48,7 +48,7 @@ curl 'https://stats.pika-network.net/api/leaderboards/total?type=bedwars'
 ```ts [craftify]
 import { Gamemode, PikaNetworkClient } from '@kyizl/craftify';
 
-const pika = new PikaNetworkClient();
+const pika = new PikaNetworkClient({ apiKey: process.env.PIKA_API_KEY! });
 
 await pika.getTotals({ gamemode: Gamemode.BedWars });
 ```

@@ -18,7 +18,7 @@ Global paginated ranking for one stat, one gamemode, one mode.
 | `mode`     | `string` | <Badge type="tip" text="recommended" />  | not crawled without this param; unconfirmed if omittable        |
 | `interval` | `string` | <Badge type="info" text="optional" />    | `total` \| `weekly` \| `monthly` \| `yearly`, default `total`   |
 | `offset`   | `number` | <Badge type="info" text="optional" />    | zero-indexed, default `0`                                       |
-| `limit`    | `number` | <Badge type="info" text="optional" />    | requested page size, **hard-capped at 15** server-side          |
+| `limit`    | `number` | <Badge type="info" text="optional" />    | requested page size, **hard-capped at 25** server-side          |
 
 `interval=yearly` valid only for gamemodes tagged `yearly` in the [Gamemode Catalog](./gamemode-catalog). Other gamemodes: `200` with empty result, not `400`.
 
@@ -55,7 +55,7 @@ curl 'https://stats.pika-network.net/api/leaderboards?type=bedwars&stat=kills&in
 ```ts [craftify]
 import { Gamemode, PikaNetworkClient, Stat } from '@kyizl/craftify';
 
-const pika = new PikaNetworkClient();
+const pika = new PikaNetworkClient({ apiKey: process.env.PIKA_API_KEY! });
 
 await pika.getLeaderboard({
   gamemode: Gamemode.BedWars,

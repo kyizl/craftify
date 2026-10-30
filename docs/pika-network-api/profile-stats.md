@@ -65,7 +65,7 @@ curl 'https://stats.pika-network.net/api/profile/resuns/leaderboard?type=bedwars
 ```ts [craftify]
 import { Gamemode, PikaNetworkClient } from '@kyizl/craftify';
 
-const pika = new PikaNetworkClient();
+const pika = new PikaNetworkClient({ apiKey: process.env.PIKA_API_KEY! });
 
 const stats = await pika.getProfileStats({
   username: 'resuns',

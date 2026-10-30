@@ -65,7 +65,7 @@ curl 'https://stats.pika-network.net/api/profile/resuns'
 ```ts [craftify]
 import { PikaNetworkClient } from '@kyizl/craftify';
 
-const pika = new PikaNetworkClient();
+const pika = new PikaNetworkClient({ apiKey: process.env.PIKA_API_KEY! });
 
 const profile = await pika.getProfile('resuns');
 ```

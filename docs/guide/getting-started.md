@@ -20,10 +20,13 @@ npm install @kyizl/craftify
 ```ts
 import { PikaNetworkClient } from '@kyizl/craftify';
 
-const pika = new PikaNetworkClient();
+const apiKey = process.env.PIKA_API_KEY;
+if (!apiKey) throw new Error('PIKA_API_KEY is required');
+
+const pika = new PikaNetworkClient({ apiKey });
 ```
 
-No configuration is required. `PikaNetworkClient` ships with sensible defaults for rate limiting, retries, and caching. See the [Rate Limiting](./rate-limiting) guide before overriding any of them.
+Every request requires a key from `/apikey` in-game. Keep it in an environment variable and never commit it. The client also provides bounded rate limiting, retries, and caching. See the [Rate Limiting](./rate-limiting) guide before changing those defaults.
 
 ## Fetch a leaderboard
 

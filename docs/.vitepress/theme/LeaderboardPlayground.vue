@@ -9,7 +9,7 @@ const gamemode = ref(
 );
 const interval = ref('total');
 const offset = ref(0);
-const limit = ref(15);
+const limit = ref(25);
 const copied = ref(false);
 
 const activeGamemode = computed(() =>
