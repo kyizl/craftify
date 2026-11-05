@@ -1,78 +1,56 @@
 ---
-title: Leaderboards
-order: 2
+title: Leaderboard Explorer
+order: 4
 ---
 
-# Leaderboards
+# Leaderboard explorer
 
-<Badge type="info" text="GET" /> `/leaderboards`
-
-Global paginated ranking for one stat, one gamemode, one mode.
-
-## Query parameters
-
-| Parameter  | Type     | Required                                 | Description                                                     |
-| ---------- | -------- | ---------------------------------------- | --------------------------------------------------------------- |
-| `type`     | `string` | <Badge type="warning" text="required" /> | gamemode id, see [Gamemode Catalog](./gamemode-catalog)         |
-| `stat`     | `string` | <Badge type="warning" text="required" /> | raw stat key, case-sensitive, mixed-case (`kills`, `BOW_KILLS`) |
-| `mode`     | `string` | <Badge type="tip" text="recommended" />  | not crawled without this param; unconfirmed if omittable        |
-| `interval` | `string` | <Badge type="info" text="optional" />    | `total` \| `weekly` \| `monthly` \| `yearly`, default `total`   |
-| `offset`   | `number` | <Badge type="info" text="optional" />    | zero-indexed, default `0`                                       |
-| `limit`    | `number` | <Badge type="info" text="optional" />    | requested page size, **hard-capped at 25** server-side          |
-
-`interval=yearly` valid only for gamemodes tagged `yearly` in the [Gamemode Catalog](./gamemode-catalog). Other gamemodes: `200` with empty result, not `400`.
-
-## Try it
+Build a real request URL for the official `GET /leaderboards` endpoint. The controls use the package's current gamemode/stat catalog; the generated [endpoint reference](./endpoints) remains authoritative for the complete raw HTTP contract.
 
 <LeaderboardPlayground />
 
-## Response `200`
+The explorer only constructs the URL; it does not send a request or attach credentials. Include your `X-Api-Key` header when calling it. The **endpoint docs** link opens the full request and response contract without making an unauthenticated request.
 
-<LiveEndpoint url="https://stats.pika-network.net/api/leaderboards?type=bedwars&stat=kills&interval=total&mode=ALL_MODES&offset=0&limit=5" />
+## Raw HTTP contract
 
-| Field             | Type              | Notes                                                                  |
-| ----------------- | ----------------- | ---------------------------------------------------------------------- |
-| `metadata.total`  | `number`          | total players tracked for this stat, not page size                     |
-| `entries`         | `Entry[] \| null` | `null` observed in place of `[]` in some cases                         |
-| `entries[].place` | `number`          | 1-indexed, absolute rank                                               |
-| `entries[].value` | `string`          | numeric string, see [numeric encoding](./overview#numeric-encoding)    |
-| `entries[].id`    | `string`          | player username                                                        |
-| `entries[].clan`  | `string`          | <Badge type="info" text="optional" /> omitted, not `null`, when absent |
-| `entries[].rank`  | `string`          | <Badge type="info" text="optional" /> omitted when absent              |
+| Parameter  | Required | Description                                                                               |
+| ---------- | -------- | ----------------------------------------------------------------------------------------- |
+| `type`     | Yes      | Game mode slug, such as `bedwars`.                                                        |
+| `stat`     | Yes      | Internal stat key, such as `wins`, `kills`, or `FINAL_KILLS`. It is not the display name. |
+| `interval` | Yes      | `weekly`, `monthly`, `yearly`, or `total`.                                                |
+| `mode`     | Yes      | Sub-mode, such as `ALL_MODES`, `DOUBLES`, or `SOLO`.                                      |
+| `offset`   | No       | Number of entries to skip; minimum `0`, default `0`.                                      |
+| `limit`    | No       | Entries per page; `1` to `25`, default `25`.                                              |
+| `season`   | No       | Historical season number. Omit for the current season.                                    |
 
-## Request forms
+`yearly` data exists only for BedWars and Unranked Practice. Historical seasons only have `total` interval data. Check the selected game mode's available stat and sub-mode values before sending the request.
 
-::: code-group
+## Response
 
-```text [HTTP]
-GET /leaderboards?type=bedwars&stat=kills&interval=total&mode=ALL_MODES&offset=0&limit=15
+The response is a `Leaderboard` object with `metadata.total` and `entries`. Each entry has an absolute one-based `place`, a player username in `id`, and a `value` encoded as a **string**. `clan` (BedWars guild) and `rank` are optional. `entries` is nullable.
+
+## cURL
+
+```bash
+curl \
+  -H "X-Api-Key: $PIKA_API_KEY" \
+  "https://stats.pika-network.net/api/leaderboards?type=bedwars&stat=wins&interval=total&mode=ALL_MODES&offset=0&limit=10"
 ```
 
-```bash [cURL]
-curl 'https://stats.pika-network.net/api/leaderboards?type=bedwars&stat=kills&interval=total&mode=ALL_MODES&offset=0&limit=15'
-```
+## With Craftify
 
-```ts [craftify]
+```ts
 import { Gamemode, PikaNetworkClient, Stat } from '@kyizl/craftify';
 
-const pika = new PikaNetworkClient({ apiKey: process.env.PIKA_API_KEY! });
+const client = new PikaNetworkClient({
+  apiKey: process.env.PIKA_API_KEY!,
+});
 
-await pika.getLeaderboard({
+const leaderboard = await client.getLeaderboard({
   gamemode: Gamemode.BedWars,
-  stat: Stat.BedWars.Kills,
-  limit: 15,
+  stat: Stat.BedWars.Wins,
+  limit: 10,
 });
 ```
 
-:::
-
-## Errors
-
-| Status | Condition                                                        |
-| ------ | ---------------------------------------------------------------- |
-| `400`  | invalid `type`                                                   |
-| `400`  | invalid `stat` for `type`                                        |
-| `400`  | invalid `mode` for `type`                                        |
-| `400`  | `stat` valid for `type` overall but not for the requested `mode` |
-
-No `404` case. Unmatched query values return `400`; the route itself always resolves.
+The wrapper uses `gamemode` instead of the raw API's `type`, and may expose pagination using a page number rather than a raw `offset`. See the [getting-started guide](/guide/getting-started) and the generated [TypeScript reference](/api/).

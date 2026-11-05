@@ -1,67 +1,92 @@
 ---
-title: Clans
+title: Clans and Guilds
 order: 6
 ---
 
-# Clans
+# Clans and guilds
 
-<Badge type="info" text="GET" /> `/clans/{clanName}`
+The upstream OpenAPI groups these BedWars guild routes under **Guilds** and uses `clans` in the URL. The route parameter is named `name` in the HTTP contract; Craftify's method uses the clearer local name `clanName`.
 
-Clan profile: tag, trophies, creation date, member list.
+The TypeScript examples assume `pika` is configured as shown in the [getting-started guide](/guide/getting-started).
 
-## Path parameters
+## Routes
 
-| Parameter  | Type     | Required                                 | Description      |
-| ---------- | -------- | ---------------------------------------- | ---------------- |
-| `clanName` | `string` | <Badge type="warning" text="required" /> | case-insensitive |
+| HTTP route                  | Craftify method                        | Purpose                                  |
+| --------------------------- | -------------------------------------- | ---------------------------------------- |
+| `GET /clans/{name}`         | `getClan(clanName)`                    | Fetch a guild by name                    |
+| `GET /clans?username=...`   | `getPlayerClan(username)`              | Find the guild a player belongs to       |
+| `GET /clans/{name}/members` | `getClanMembers({ clanName, stats? })` | Fetch members and selected BedWars stats |
 
-## Response `200`
+`getClans(names)` is a batched client helper over `getClan`; it does not call a separate batch endpoint.
 
-::: warning unverified schema
-Not covered by the crawl. Field types below reflect the validation schema.
-:::
+All three HTTP routes require the `X-Api-Key` header. The documented responses are `200`, `404`, and `429`; the global API-key failure is `401`.
 
-| Field            | Type        | Notes                                                                    |
-| ---------------- | ----------- | ------------------------------------------------------------------------ |
-| `name`           | `string`    | <Badge type="info" text="optional" />                                    |
-| `tag`            | `string`    | <Badge type="info" text="optional" />                                    |
-| `trophies`       | `number`    | <Badge type="info" text="optional" />                                    |
-| `createdAt`      | `number`    | <Badge type="info" text="optional" /> unix ms                            |
-| `members`        | `unknown[]` | <Badge type="info" text="optional" /> entries passed through unvalidated |
-| _(other fields)_ | `unknown`   | schema is passthrough                                                    |
+## Fetch a guild
 
-## Live example
+`GET /clans/{name}` accepts one required path parameter:
 
-Real `GET` request from your browser directly to `stats.pika-network.net`, no proxy, no mock data.
+| Parameter | Type     | Required | Description |
+| --------- | -------- | -------- | ----------- |
+| `name`    | `string` | Yes      | Guild name  |
 
-<LiveEndpoint url="https://stats.pika-network.net/api/clans/THEBOIS" />
+The `200` response uses the [`Clan`](./schemas#clan) schema. Its documented properties include `name`, `tag`, `currentTrophies`, `creationTime`, `owner.username`, `leveling` and `members`. `creationTime` is a local date-time string without a timezone.
 
-## Request forms
-
-::: code-group
-
-```text [HTTP]
-GET /clans/THEBOIS
+```bash
+curl \
+  -H "X-Api-Key: $PIKA_API_KEY" \
+  "https://stats.pika-network.net/api/clans/NEXUS"
 ```
 
-```bash [cURL]
-curl 'https://stats.pika-network.net/api/clans/THEBOIS'
+```ts
+const clan = await pika.getClan('NEXUS');
 ```
 
-```ts [craftify]
-import { PikaNetworkClient } from '@kyizl/craftify';
+## Find a player's guild
 
-const pika = new PikaNetworkClient({ apiKey: process.env.PIKA_API_KEY! });
+`GET /clans` accepts one required query parameter:
 
-const clan = await pika.getClan('THEBOIS');
+| Parameter  | Type     | Required | Description        |
+| ---------- | -------- | -------- | ------------------ |
+| `username` | `string` | Yes      | Minecraft username |
+
+The `200` response has the same `Clan` shape as `GET /clans/{name}`. `404` means the player is not in a guild.
+
+```bash
+curl \
+  -H "X-Api-Key: $PIKA_API_KEY" \
+  "https://stats.pika-network.net/api/clans?username=voodootje0"
 ```
 
-:::
+```ts
+const clan = await pika.getPlayerClan('voodootje0');
+```
 
-## Errors
+## Fetch guild members
 
-| Status             | Condition           |
-| ------------------ | ------------------- |
-| `404` (empty body) | clan does not exist |
+`GET /clans/{name}/members` accepts the required `name` path parameter and an optional `stats` query parameter:
 
-No `400` case.
+| Parameter | Type     | Required | Description                                                                                               |
+| --------- | -------- | -------- | --------------------------------------------------------------------------------------------------------- |
+| `name`    | `string` | Yes      | Guild name                                                                                                |
+| `stats`   | `string` | No       | Comma-separated BedWars stat keys; maximum 20. Defaults to `WINS,KILLS,FINAL_KILLS,BED_DESTROYED,PLAYED`. |
+
+The `200` response is an array of [`ClanMember`](./schemas#clanmember) objects. The client accepts either a comma-separated string or a string array and validates the 20-item limit before sending the request.
+
+```bash
+curl \
+  -H "X-Api-Key: $PIKA_API_KEY" \
+  "https://stats.pika-network.net/api/clans/Cheaters/members?stats=WINS,KILLS,FINAL_KILLS"
+```
+
+```ts
+const members = await pika.getClanMembers({
+  clanName: 'Cheaters',
+  stats: ['WINS', 'KILLS', 'FINAL_KILLS'],
+});
+```
+
+## Response compatibility
+
+The generated [`Clan`](./schemas#clan) and [`ClanMember`](./schemas#clanmember) pages describe the published upstream contract. Craftify's runtime validators are deliberately permissive and preserve unknown properties. They also tolerate optional compatibility fields such as `trophies`, `createdAt`, and a member `rank`; those extra fields are **not** part of the current OpenAPI schema and should not be treated as guaranteed API fields.
+
+There is one response-shape difference worth knowing: OpenAPI describes the members endpoint as `ClanMember[]` with `user.username`, while Craftify's member-stat type also accepts a flat `username` and an optional `stats` object (`total`, `weekly`, `monthly`). The authenticated response body was not available during this documentation audit, so the validator accepts both forms rather than claiming that one is the only live shape.

@@ -1,5 +1,1 @@
-export {
-  HttpClient,
-  type GetJsonOptions,
-  type HttpClientOptions,
-} from '@/client/http/client';
+export { HttpClient } from '@/client/http/client';

@@ -5,4 +5,5 @@ docs/.vitepress/dist
 docs/.vitepress/cache
 docs/api
 data/pika-crawl.json
+docs/public/pika-network-openapi.json
 docs/.vitepress/.temp

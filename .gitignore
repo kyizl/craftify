@@ -2,10 +2,25 @@ node_modules/
 dist/
 coverage/
 *.log
+*.tgz
+
+# Local credentials and machine-specific package configuration.
+.env
+.env.*
+!.env.example
+.npmrc
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+.wrangler/
+
+# Local tooling and generated review artifacts.
+.design-pass/
+.design-pass.mjs
+.DS_Store
+Thumbs.db
 
 .husky/_
-
-scripts/
 
 docs/.vitepress/cache/
 docs/.vitepress/dist/

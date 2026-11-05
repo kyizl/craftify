@@ -45,7 +45,7 @@ await pika.getLeaderboard({
 });
 ```
 
-See the [Getting Started](docs/guide/getting-started.md), [Gamemodes and Enums](docs/guide/gamemodes-and-enums.md), [Ergonomic Constants](docs/guide/ergonomic-constants.md), [Batch Requests](docs/guide/batch-requests.md), and [Rate Limiting](docs/guide/rate-limiting.md) guides for the full picture, or browse the live documentation site linked from the [API Reference](docs/api/index.md).
+See the [Getting Started](docs/guide/getting-started.md), [Gamemodes and Enums](docs/guide/gamemodes-and-enums.md), [Ergonomic Constants](docs/guide/ergonomic-constants.md), [Batch Requests](docs/guide/batch-requests.md), and [Rate Limiting](docs/guide/rate-limiting.md) guides for the full picture, or browse the live [API Reference](https://craftify.kyizl.is-a.dev/api/).
 
 ## Documentation
 
@@ -56,6 +56,16 @@ Full guides and the generated API reference live at the project's documentation 
 - [Ergonomic Constants](docs/guide/ergonomic-constants.md), for the `Gamemode` / `Mode` / `Stat` / `Interval` / `StatKey` aliases.
 - [Batch Requests](docs/guide/batch-requests.md), for the concurrency, ordering, and failure-isolation contract.
 - [Rate Limiting](docs/guide/rate-limiting.md), for why the defaults are conservative and how to override them responsibly.
+
+## Upstream API reference
+
+This project is built against the live PikaNetwork stats service, whose official reference is published at:
+
+- [PikaNetwork API docs](https://stats.pika-network.net/docs)
+- [OpenAPI schema](https://stats.pika-network.net/openapi.json)
+- [Public API base URL](https://stats.pika-network.net/api)
+
+The client keeps its runtime validation and generated enums aligned with the live upstream contract, rather than relying on a stale hand-maintained list. If you need to inspect the raw HTTP shape or compare a response against the official docs, start there.
 
 ## Contributing
 

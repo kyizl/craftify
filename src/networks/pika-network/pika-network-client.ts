@@ -19,12 +19,12 @@ import type { NetworkClientOptions } from '@/client';
 import type { PikaNetworkMixinConstructor } from '@/networks/pika-network/mixins/mixin-constructor';
 import type { PikaNetworkRateLimitInfo } from '@/networks/pika-network/types';
 
-interface PikaNetworkDefaultHostOptions extends NetworkClientOptions {
+export interface PikaNetworkDefaultHostOptions extends NetworkClientOptions {
   apiKey: string;
   baseUrl?: undefined;
 }
 
-interface PikaNetworkCustomHostOptions extends NetworkClientOptions {
+export interface PikaNetworkCustomHostOptions extends NetworkClientOptions {
   apiKey?: string;
   baseUrl: string;
 }

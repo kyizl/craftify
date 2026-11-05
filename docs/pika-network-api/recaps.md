@@ -3,62 +3,51 @@ title: Match Recaps
 order: 7
 ---
 
-# Match Recaps
+# Match recaps
 
-<Badge type="info" text="GET" /> `/recaps/{gameId}`
+`GET /recaps/{gameId}` returns a [`Recap`](./schemas#recap) for a completed match. The path parameter is an opaque game identifier; the OpenAPI schema does not define a pattern or provide a sample ID, so examples use a placeholder rather than an invented identifier.
 
-Summary of one completed match. Contents vary by gamemode.
-
-## Path parameters
-
-| Parameter | Type     | Required                                 | Description             |
-| --------- | -------- | ---------------------------------------- | ----------------------- |
-| `gameId`  | `string` | <Badge type="warning" text="required" /> | opaque match identifier |
+The TypeScript example assumes `pika` is configured as shown in the [getting-started guide](/guide/getting-started).
 
 ## Response `200`
 
-::: warning open schema
-`Record<string, unknown>`. No fixed shape asserted; contents differ by gamemode and are not independently catalogued.
-:::
+The published response schema contains:
 
-## Live example
+| Field            | Type       | Notes                                      |
+| ---------------- | ---------- | ------------------------------------------ |
+| `id`             | `string`   | Recap identifier                           |
+| `mapName`        | `string`   | Map name                                   |
+| `gameType`       | `string`   | Game type; the schema example is `BedWars` |
+| `gameServerName` | `string`   | Server name                                |
+| `gameStart`      | `string`   | Game start value as returned by the API    |
+| `gameDuration`   | `string`   | Duration as returned by the API            |
+| `users`          | `object[]` | Players and their stat maps                |
+| `winners`        | `string[]` | Winning player names                       |
+| `stats`          | `string[]` | Stat names shown in this recap             |
 
-`8b17beb5-e8be-489f-b083-fed74ad8d7d7` is a real bedwars recap id referenced in PikaNetwork's own community documentation. Recaps are not retained forever, so this may now return `404` rather than `200`, that outcome is itself accurate documentation of the retention window.
+Each `users[]` entry can contain `username` and `stats`. The `stats` object is keyed by game-specific display names, and its values may be strings or numbers. Do not hard-code one fixed set of stat keys across all game types.
 
-<LiveEndpoint url="https://stats.pika-network.net/api/recaps/8b17beb5-e8be-489f-b083-fed74ad8d7d7" />
+## Request
 
-## Request forms
+Replace `YOUR_GAME_ID` with an ID obtained from a real match or the official API:
 
-::: code-group
-
-```text [HTTP]
-GET /recaps/8b17beb5-e8be-489f-b083-fed74ad8d7d7
+```bash
+curl \
+  -H "X-Api-Key: $PIKA_API_KEY" \
+  "https://stats.pika-network.net/api/recaps/YOUR_GAME_ID"
 ```
 
-```bash [cURL]
-curl 'https://stats.pika-network.net/api/recaps/8b17beb5-e8be-489f-b083-fed74ad8d7d7'
+```ts
+const recap = await pika.getMatchRecap('YOUR_GAME_ID');
 ```
 
-```ts [craftify]
-import { PikaNetworkClient } from '@kyizl/craftify';
+Craftify sets `skipCache: true` by default for recap requests because recap data is treated as a live lookup. You can override that behavior through the optional request configuration.
 
-const pika = new PikaNetworkClient({ apiKey: process.env.PIKA_API_KEY! });
+## Status codes
 
-const recap = await pika.getMatchRecap('8b17beb5-e8be-489f-b083-fed74ad8d7d7');
-```
-
-:::
-
-## Errors
-
-| Status             | Condition              |
-| ------------------ | ---------------------- |
-| `404` (empty body) | game id does not exist |
-
-## Caching
-
-| Property        | Value                                                                 |
-| --------------- | --------------------------------------------------------------------- |
-| Mutability      | immutable once the match ends                                         |
-| Default caching | disabled (`skipCache: true`), a given `gameId` is rarely re-requested |
-| Override        | pass `config.skipCache: false` to cache anyway                        |
+| Status | Meaning                                                                  |
+| ------ | ------------------------------------------------------------------------ |
+| `200`  | Recap returned                                                           |
+| `400`  | Invalid game ID; the response uses the [`Error`](./schemas#error) schema |
+| `404`  | No recap exists for that game; empty body                                |
+| `429`  | Per-key rate limit exceeded                                              |

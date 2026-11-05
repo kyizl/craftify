@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { data } from '../data/pika-network-catalog.data';
 
 const gamemodeOptions = data.gamemodes.map((g) => g.gamemode);
@@ -9,8 +9,10 @@ const gamemode = ref(
 );
 const interval = ref('total');
 const offset = ref(0);
-const limit = ref(25);
+const limit = ref(10);
 const copied = ref(false);
+const copyMessage = ref('');
+let copyTimer: ReturnType<typeof setTimeout> | undefined;
 
 const activeGamemode = computed(() =>
   data.gamemodes.find((g) => g.gamemode === gamemode.value)!,
@@ -22,29 +24,115 @@ const mode = ref(activeGamemode.value.modes[0] ?? '');
 watch(gamemode, () => {
   stat.value = activeGamemode.value.stats[0]?.rawKey ?? '';
   mode.value = activeGamemode.value.modes[0] ?? '';
+  if (!activeGamemode.value.yearlyCapable && interval.value === 'yearly') {
+    interval.value = 'total';
+  }
 });
 
+const intervals = computed(() =>
+  activeGamemode.value.yearlyCapable
+    ? ['weekly', 'monthly', 'yearly', 'total']
+    : ['weekly', 'monthly', 'total'],
+);
+
+const offsetError = computed(() =>
+  Number.isInteger(offset.value) && offset.value >= 0
+    ? ''
+    : 'Offset must be a whole number greater than or equal to 0.',
+);
+const limitError = computed(() =>
+  Number.isInteger(limit.value) && limit.value >= 1 && limit.value <= 25
+    ? ''
+    : 'Limit must be a whole number between 1 and 25.',
+);
+const validationErrors = computed(() =>
+  [offsetError.value, limitError.value].filter(Boolean),
+);
+const hasValidationErrors = computed(() => validationErrors.value.length > 0);
+
+async function writeClipboardText(text: string): Promise<void> {
+  try {
+    if (!navigator.clipboard?.writeText) throw new Error('Clipboard API unavailable');
+    await navigator.clipboard.writeText(text);
+    return;
+  } catch {
+    const activeElement = document.activeElement;
+    const selection = document.getSelection();
+    const originalRange =
+      selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed';
+    textarea.style.top = '0';
+    textarea.style.left = '-9999px';
+    textarea.style.fontSize = '16px';
+    document.body.append(textarea);
+    textarea.select();
+    textarea.setSelectionRange(0, textarea.value.length);
+
+    let copied = false;
+    try {
+      copied = document.execCommand('copy');
+    } finally {
+      textarea.remove();
+      if (originalRange && selection) {
+        selection.removeAllRanges();
+        selection.addRange(originalRange);
+      }
+      if (activeElement instanceof HTMLElement) activeElement.focus();
+    }
+
+    if (!copied) throw new Error('Clipboard fallback failed');
+  }
+}
+
 const requestUrl = computed(() => {
+  const safeOffset = Math.max(
+    0,
+    Math.trunc(Number.isFinite(offset.value) ? offset.value : 0),
+  );
+  const safeLimit = Math.min(
+    25,
+    Math.max(1, Math.trunc(Number.isFinite(limit.value) ? limit.value : 10)),
+  );
   const params = new URLSearchParams({
     type: gamemode.value,
     stat: stat.value,
     interval: interval.value,
-    mode: mode.value,
-    offset: String(offset.value),
-    limit: String(limit.value),
+    offset: String(safeOffset),
+    limit: String(safeLimit),
   });
+  if (mode.value) params.set('mode', mode.value);
   return `https://stats.pika-network.net/api/leaderboards?${params.toString()}`;
 });
 
 async function copyUrl() {
+  if (copyTimer) {
+    clearTimeout(copyTimer);
+    copyTimer = undefined;
+  }
+  copied.value = false;
+  copyMessage.value = '';
+
   try {
-    await navigator.clipboard.writeText(requestUrl.value);
+    await writeClipboardText(requestUrl.value);
     copied.value = true;
-    setTimeout(() => (copied.value = false), 1500);
+    copyMessage.value = 'Request URL copied to clipboard.';
+    copyTimer = setTimeout(() => {
+      copied.value = false;
+      copyMessage.value = '';
+      copyTimer = undefined;
+    }, 1800);
   } catch {
-    copied.value = false;
+    copyMessage.value =
+      'Clipboard access is unavailable. Select the URL above and copy it manually.';
   }
 }
+
+onBeforeUnmount(() => {
+  if (copyTimer) clearTimeout(copyTimer);
+});
 </script>
 
 <template>
@@ -97,10 +185,13 @@ async function copyUrl() {
       <label>
         <span>interval</span>
         <select v-model="interval">
-          <option>total</option>
-          <option>weekly</option>
-          <option>monthly</option>
-          <option>yearly</option>
+          <option
+            v-for="value in intervals"
+            :key="value"
+            :value="value"
+          >
+            {{ value }}
+          </option>
         </select>
       </label>
 
@@ -110,8 +201,17 @@ async function copyUrl() {
           v-model.number="offset"
           type="number"
           min="0"
-          step="15"
+          step="1"
+          :aria-invalid="Boolean(offsetError)"
+          :aria-describedby="offsetError ? 'craftify-offset-error' : undefined"
         />
+        <span
+          v-if="offsetError"
+          id="craftify-offset-error"
+          class="craftify-field-error"
+        >
+          {{ offsetError }}
+        </span>
       </label>
 
       <label>
@@ -120,150 +220,66 @@ async function copyUrl() {
           v-model.number="limit"
           type="number"
           min="1"
-          max="15"
+          max="25"
+          step="1"
+          :aria-invalid="Boolean(limitError)"
+          :aria-describedby="limitError ? 'craftify-limit-error' : undefined"
         />
+        <span
+          v-if="limitError"
+          id="craftify-limit-error"
+          class="craftify-field-error"
+        >
+          {{ limitError }}
+        </span>
       </label>
     </div>
 
     <div class="craftify-playground-output">
-      <code>{{ requestUrl }}</code>
+      <code aria-label="Generated leaderboard request URL">{{ requestUrl }}</code>
       <div class="craftify-playground-actions">
         <button
           type="button"
           @click="copyUrl"
+          :disabled="hasValidationErrors"
+          :aria-label="copied ? 'Request URL copied' : 'Copy request URL'"
         >
-          {{ copied ? 'copied' : 'copy' }}
+          {{ copied ? 'copied' : 'copy URL' }}
         </button>
         <a
-          :href="requestUrl"
-          target="_blank"
-          rel="noopener"
-          >open</a
+          :href="
+            hasValidationErrors ? undefined : '/pika-network-api/endpoints#leaderboards'
+          "
+          :aria-disabled="hasValidationErrors"
+          :tabindex="hasValidationErrors ? -1 : 0"
+          >endpoint docs</a
         >
       </div>
     </div>
 
     <p
-      v-if="interval === 'yearly' && !activeGamemode.yearlyCapable"
+      class="craftify-playground-status"
+      role="status"
+      aria-live="polite"
+    >
+      {{ copyMessage }}
+    </p>
+
+    <p
+      v-if="validationErrors.length"
+      class="craftify-playground-warning"
+      role="alert"
+    >
+      {{ validationErrors.join(' ') }} Correct the highlighted values to copy or open this
+      request.
+    </p>
+
+    <p
+      v-if="!stat || !mode"
       class="craftify-playground-warning"
     >
-      <code>{{ gamemode }}</code> does not support <code>interval=yearly</code>. This
-      request returns <code>200</code> with an empty result, not <code>400</code>.
+      This gamemode does not expose a stat or mode option in the local catalog. Check the
+      official endpoint reference before sending this request.
     </p>
   </div>
 </template>
-
-<style scoped>
-.craftify-playground {
-  border: 1px solid var(--vp-c-divider);
-  border-radius: 2px;
-  padding: 20px;
-  margin: 24px 0;
-  background: var(--vp-c-bg-soft);
-}
-
-.craftify-playground-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 16px;
-  font-family: var(--vp-font-family-mono);
-}
-
-.craftify-playground-badge {
-  display: inline-block;
-  padding: 2px 10px;
-  border-radius: 2px;
-  font-size: 12px;
-  font-weight: 600;
-  background: var(--vp-badge-info-bg);
-  color: var(--vp-badge-info-text);
-  border: 1px solid var(--vp-badge-info-border);
-}
-
-.craftify-playground-path {
-  font-weight: 600;
-}
-
-.craftify-playground-fields {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.craftify-playground-fields label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 0.8rem;
-  color: var(--vp-c-text-2);
-}
-
-.craftify-playground-fields select,
-.craftify-playground-fields input {
-  border: 1px solid var(--vp-c-divider);
-  border-radius: 2px;
-  padding: 6px 8px;
-  background: var(--vp-c-bg);
-  color: var(--vp-c-text-1);
-  font-family: var(--vp-font-family-mono);
-  font-size: 0.85rem;
-  transition: border-color 0.2s ease;
-}
-
-.craftify-playground-fields select:focus,
-.craftify-playground-fields input:focus {
-  outline: none;
-  border-color: var(--vp-c-brand-1);
-}
-
-.craftify-playground-output {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  border-radius: 2px;
-  background: var(--vp-code-block-bg);
-  overflow-x: auto;
-}
-
-.craftify-playground-output code {
-  flex: 1;
-  white-space: nowrap;
-  font-size: 0.8rem;
-  color: var(--vp-c-brand-1);
-}
-
-.craftify-playground-actions {
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.craftify-playground-actions button,
-.craftify-playground-actions a {
-  border: 1px solid var(--vp-c-divider);
-  border-radius: 2px;
-  padding: 4px 10px;
-  font-size: 0.75rem;
-  background: transparent;
-  color: var(--vp-c-text-1);
-  cursor: pointer;
-  transition:
-    border-color 0.2s ease,
-    color 0.2s ease;
-}
-
-.craftify-playground-actions button:hover,
-.craftify-playground-actions a:hover {
-  border-color: var(--vp-c-brand-1);
-  color: var(--vp-c-brand-1);
-}
-
-.craftify-playground-warning {
-  margin-top: 12px;
-  font-size: 0.85rem;
-  color: var(--vp-c-warning-1);
-}
-</style>

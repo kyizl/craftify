@@ -1,6 +1,8 @@
 export * from '@/networks/pika-network/enums';
 export {
   PikaNetworkClient,
+  type PikaNetworkCustomHostOptions,
+  type PikaNetworkDefaultHostOptions,
   type PikaNetworkClientOptions,
 } from '@/networks/pika-network/pika-network-client';
 export {
@@ -8,6 +10,7 @@ export {
   PikaNetworkDefaultRateLimit,
 } from '@/networks/pika-network/pika-network-defaults';
 export {
+  ClanMemberSchema,
   PikaNetworkClanResponseSchema,
   PikaNetworkClanMemberStatsResponseSchema,
   PikaNetworkClanMembersSchema,
@@ -35,7 +38,9 @@ export {
   PikaNetworkPlayerTeamSchema,
   PikaNetworkPlayerTeamsSchema,
   PikaNetworkProfileDonorRankSchema,
+  PikaNetworkProfileFriendSchema,
   PikaNetworkProfileResponseSchema,
+  type PikaNetworkProfileStatsResponse,
   PikaNetworkProfileStatsResponseSchema,
   PikaNetworkRecapResponseSchema,
   PikaNetworkSeasonDatesSchema,

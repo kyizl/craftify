@@ -1,0 +1,3126 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "PikaNetwork Stats API",
+    "version": "1.0.0",
+    "description": "The public API behind stats.pika-network.net. Call it from a bot, a script or a server.\n\n**API key:** every request needs a free key in the `X-Api-Key` header. Get one in-game with `/apikey` (link your Discord first with `/linkaccount`). A missing or invalid key gets `401`. Leaked key? `/apikey reset` makes a new one.\n\n**Rate limit:** 120 requests per minute per key. Responses carry `X-RateLimit-Limit`, `X-RateLimit-Remaining` and `X-RateLimit-Reset` (seconds); over the limit you get `429 Too Many Requests` with `Retry-After`. Cache what you can.\n\n**What's here:** player profiles and per-mode stats with daily history, leaderboards (including the day's biggest movers), factions / islands / gangs / teams with their history, BedWars guilds, events from the events server, every PvP kill with both players' gear, past seasons and match recaps.\n\n**Game modes** (`type`, `{mode}`): `opfactions`, `opprison`, `opskyblock`, `oneblock`, `survival`, `kitpvp`, `unrankedpractice`, `rankedpractice`, `bedwars`, `skywars`, `oplifesteal`, `skypvp`, `skymines`, `genpvp`, `wildkits`, `dungeons`.\n\nNames from the game can contain Minecraft color codes (`§c`, `§l`, ...); strip them with `/§[0-9a-fk-or]/gi` before showing them.\n\nThis documentation is community-maintained from the API's real responses; the API itself can change without notice."
+  },
+  "servers": [
+    {
+      "url": "https://stats.pika-network.net/api",
+      "description": "PikaNetwork"
+    }
+  ],
+  "security": [
+    {
+      "ApiKey": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Players",
+      "description": "Profiles, per-mode stats and their daily history"
+    },
+    {
+      "name": "Leaderboards",
+      "description": "Player rankings per game mode and stat, and the day's biggest movers"
+    },
+    {
+      "name": "Teams",
+      "description": "Factions (OpFactions), islands (OpSkyBlock, OneBlock, SkyMines), gangs (OpPrison) and teams (KitPvP, SkyPvP, GenPvP, Survival, OpLifeSteal)"
+    },
+    {
+      "name": "Guilds",
+      "description": "BedWars guilds (called clans in the API)"
+    },
+    {
+      "name": "Events",
+      "description": "Events hosted on the events server (Spleef, Sumo, Parkour...) with everyone's final placement"
+    },
+    {
+      "name": "Fights",
+      "description": "Every PvP kill on the network: both players' gear, how long it took, what they used"
+    },
+    {
+      "name": "Other",
+      "description": "Seasons and match recaps"
+    }
+  ],
+  "paths": {
+    "/profile/{username}": {
+      "get": {
+        "tags": [
+          "Players"
+        ],
+        "summary": "Player profile",
+        "description": "Network level, ranks per server, friends, guild and linked accounts.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/username"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The player",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Profile"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No player with that name (empty body)"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/profile/{username}/leaderboard": {
+      "get": {
+        "tags": [
+          "Players"
+        ],
+        "summary": "A player's stats in one game mode",
+        "description": "Every stat of the mode, keyed by its display name (`Kills`, `Final kills`, `Balance`...). Each stat has the total number of ranked players and the player's own entry with their value and leaderboard place, or `entries: null` if they have none for that period.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/username"
+          },
+          {
+            "$ref": "#/components/parameters/type"
+          },
+          {
+            "$ref": "#/components/parameters/interval"
+          },
+          {
+            "$ref": "#/components/parameters/subMode"
+          },
+          {
+            "$ref": "#/components/parameters/season"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stats by display name",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerLeaderboard"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/players/{username}/teams": {
+      "get": {
+        "tags": [
+          "Players"
+        ],
+        "summary": "A player's faction / island / gang / team in each mode",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/username"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One entry per mode the player is in a group in (empty array if none)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PlayerTeam"
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/profile/{username}/history": {
+      "get": {
+        "tags": [
+          "Players"
+        ],
+        "summary": "A player's daily progression in one mode",
+        "description": "Their lifetime stats day by day (minigames and Practice: all modes summed), for the stats the site tracks. A day only has a point if they played; missing days carry the previous value. Stats with no data are left out.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/username"
+          },
+          {
+            "$ref": "#/components/parameters/type"
+          },
+          {
+            "name": "stats",
+            "in": "query",
+            "description": "Comma list of stat ids (default: the mode's tracked stats)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "description": "Days back from today (UTC), 1-365",
+            "schema": {
+              "type": "integer",
+              "default": 90,
+              "minimum": 1,
+              "maximum": 365
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The series",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerHistory"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "The player keeps their stats private (empty body)"
+          },
+          "400": {
+            "description": "No such player",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/leaderboards": {
+      "get": {
+        "tags": [
+          "Leaderboards"
+        ],
+        "summary": "Top players for one stat",
+        "description": "Use the stat's internal key (`wins`, `kills`, `BALANCE`, `PRISON_PRESTIGE`, `HARVEST_SUGAR_CANE`...), not its display name. Pages hold at most **25** entries; a higher `limit` is capped. BedWars entries include the player's guild in `clan`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/type"
+          },
+          {
+            "name": "stat",
+            "in": "query",
+            "required": true,
+            "description": "Internal stat key",
+            "schema": {
+              "type": "string",
+              "example": "wins"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/interval"
+          },
+          {
+            "$ref": "#/components/parameters/subMode"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Entries to skip",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Entries per page (max 25)",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 25,
+              "default": 25
+            }
+          },
+          {
+            "$ref": "#/components/parameters/season"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of the ranking",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Leaderboard"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/leaderboards/total": {
+      "get": {
+        "tags": [
+          "Leaderboards"
+        ],
+        "summary": "Totals for every stat of a mode",
+        "description": "How many players have each stat, plus the sum and average across all of them.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/type"
+          },
+          {
+            "$ref": "#/components/parameters/season"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One entry per stat",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StatTotal"
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/leaderboards/stats": {
+      "get": {
+        "tags": [
+          "Leaderboards"
+        ],
+        "summary": "Every stat id a mode has a board for",
+        "description": "Use `id` as `stat=` on `/leaderboards`. `name` is the display name when known, else the id. Handy for stats per item, like each crate.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/type"
+          },
+          {
+            "name": "prefix",
+            "in": "query",
+            "description": "Only ids starting with this",
+            "schema": {
+              "type": "string"
+            },
+            "example": "crate.open."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stat ids",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StatId"
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/leaderboards/movers": {
+      "get": {
+        "tags": [
+          "Leaderboards"
+        ],
+        "summary": "Biggest gainers of one stat",
+        "description": "Each player's value today minus their last value on or before the start of the window. Only players who played today and gained are listed; private players are hidden. Note: `stat` is the lowercase stat id used by `/profile/{username}/history` (`common.balance`), not the leaderboard key.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/type"
+          },
+          {
+            "name": "stat",
+            "in": "query",
+            "description": "Lowercase stat id (default: the mode's first tracked stat)",
+            "schema": {
+              "type": "string"
+            },
+            "example": "common.kills"
+          },
+          {
+            "name": "window",
+            "in": "query",
+            "description": "`1d` = today vs yesterday, `7d` = today vs a week ago (UTC days; today is partial)",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1d",
+                "7d"
+              ],
+              "default": "1d"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "1-50",
+            "schema": {
+              "type": "integer",
+              "default": 25,
+              "maximum": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Movers, biggest gain first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Mover"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Untracked stat or bad window"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/teams/{mode}/top": {
+      "get": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Top groups of a mode",
+        "description": "Factions, islands, gangs or teams ranked by their headline value (worth, points...). In Survival and OpLifeSteal every team has 0, so the order there is not a ranking.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/teamMode"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 25
+            },
+            "example": 15
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          },
+          {
+            "name": "with",
+            "in": "query",
+            "description": "`change` adds each group's 24-hour place and value change",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "change"
+              ]
+            }
+          },
+          {
+            "$ref": "#/components/parameters/season"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Groups in order",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TopTeam"
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/teams/{mode}/{entityId}": {
+      "get": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "One faction / island / gang / team",
+        "description": "Members with roles, headline value, place and the members' combined stats (`aggStats`, keyed by stat id; names in `/teams/{mode}/stats`). `breakdown` holds mode-specific details (OpFactions: worth components, allies, spawners...).",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/teamMode"
+          },
+          {
+            "name": "entityId",
+            "in": "path",
+            "required": true,
+            "description": "From `/teams/{mode}/top` or `/players/{username}/teams` (a number for factions, a UUID for islands)",
+            "schema": {
+              "type": "string"
+            },
+            "example": "20"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The group",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such group"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/teams/{mode}/stats": {
+      "get": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Names of a mode's team stats",
+        "description": "Maps the stat ids used in `aggStats` to display names. Some ids that appear in `aggStats` are not listed here.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/teamMode"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stat catalog",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamStatCatalog"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/teams/{mode}/{entityId}/history": {
+      "get": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "A group's snapshot series",
+        "description": "Hourly snapshots of place, headline value and every team stat, oldest first.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/teamMode"
+          },
+          {
+            "name": "entityId",
+            "in": "path",
+            "required": true,
+            "description": "From `/teams/{mode}/top` or `/players/{username}/teams`",
+            "schema": {
+              "type": "string"
+            },
+            "example": "6"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "The newest N snapshots, 1-5000",
+            "schema": {
+              "type": "integer",
+              "default": 500,
+              "maximum": 5000
+            }
+          },
+          {
+            "$ref": "#/components/parameters/season"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The series",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamHistory"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/teams/vs": {
+      "get": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Compare two groups",
+        "description": "Without time params: both groups now. With `at` (epoch ms): each side's last snapshot at or before then. With `from` and `to`: each side's series in that span (newest 500 points).",
+        "parameters": [
+          {
+            "name": "gamemode",
+            "in": "query",
+            "required": true,
+            "description": "Game mode with groups",
+            "schema": {
+              "type": "string"
+            },
+            "example": "opfactions"
+          },
+          {
+            "name": "a",
+            "in": "query",
+            "required": true,
+            "description": "First group's entityId",
+            "schema": {
+              "type": "string"
+            },
+            "example": "6"
+          },
+          {
+            "name": "b",
+            "in": "query",
+            "required": true,
+            "description": "Second group's entityId",
+            "schema": {
+              "type": "string"
+            },
+            "example": "7"
+          },
+          {
+            "name": "at",
+            "in": "query",
+            "description": "Epoch ms",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Epoch ms",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Epoch ms",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Both sides",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamVs"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`at` together with `from`/`to`, or only one of `from`/`to`"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/clans/{name}": {
+      "get": {
+        "tags": [
+          "Guilds"
+        ],
+        "summary": "A BedWars guild",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "description": "Guild name",
+            "schema": {
+              "type": "string"
+            },
+            "example": "NEXUS"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The guild",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Clan"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No guild with that name (empty body)"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        },
+        "description": "A BedWars guild by its exact name: tag, trophies, owner, members with join dates and level."
+      }
+    },
+    "/clans/{name}/members": {
+      "get": {
+        "tags": [
+          "Guilds"
+        ],
+        "summary": "A guild's members with their BedWars totals",
+        "description": "The whole roster in one call: each member's all-time, weekly and monthly totals (all modes summed). `stats` is null for members with private stats.",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Cheaters"
+          },
+          {
+            "name": "stats",
+            "in": "query",
+            "description": "Comma list of BedWars stat keys, max 20",
+            "schema": {
+              "type": "string",
+              "default": "WINS,KILLS,FINAL_KILLS,BED_DESTROYED,PLAYED"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Members",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ClanMember"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such guild"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/clans": {
+      "get": {
+        "tags": [
+          "Guilds"
+        ],
+        "summary": "The guild a player is in",
+        "parameters": [
+          {
+            "name": "username",
+            "in": "query",
+            "required": true,
+            "description": "Minecraft username",
+            "schema": {
+              "type": "string"
+            },
+            "example": "voodootje0"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Their guild, same shape as /clans/{name}",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Clan"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not in a guild"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/events": {
+      "get": {
+        "tags": [
+          "Events"
+        ],
+        "summary": "Events, newest first",
+        "description": "Every finished event with its winners. Test runs and cancelled lobbies are never recorded.",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "description": "An event type from `/events/types`",
+            "schema": {
+              "type": "string"
+            },
+            "example": "SPLEEF"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Max 50",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "maximum": 50
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of events",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "total": {
+                      "type": "integer"
+                    },
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/EventSummary"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "description": "Fights or events are not available right now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/events/{id}": {
+      "get": {
+        "tags": [
+          "Events"
+        ],
+        "summary": "One event with everyone's placement",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Event id (a UUID)",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The event",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Event"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Not a UUID"
+          },
+          "404": {
+            "description": "No such event"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "description": "Fights or events are not available right now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/events/winners": {
+      "get": {
+        "tags": [
+          "Events"
+        ],
+        "summary": "Most event wins",
+        "description": "Per player, with their latest name. Force-ended events don't count.",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "description": "One event type only",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "description": "Only events in the last N days; 0 = all time",
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "maximum": 3650
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Max 50",
+            "schema": {
+              "type": "integer",
+              "default": 25,
+              "maximum": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Most wins first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EventWinner"
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "description": "Fights or events are not available right now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/events/types": {
+      "get": {
+        "tags": [
+          "Events"
+        ],
+        "summary": "Every event type played",
+        "responses": {
+          "200": {
+            "description": "Most played first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EventType"
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "description": "Fights or events are not available right now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/profile/{username}/events": {
+      "get": {
+        "tags": [
+          "Events"
+        ],
+        "summary": "A player's events",
+        "description": "Their totals and events, newest first.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/username"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Max 50",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "maximum": 50
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Their events",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerEvents"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "The player keeps their stats private (empty body)"
+          },
+          "400": {
+            "description": "No such player",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "description": "Fights or events are not available right now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fights": {
+      "get": {
+        "tags": [
+          "Fights"
+        ],
+        "summary": "The latest kills in a mode",
+        "description": "PvP kills from the last 2 days, newest first, with both sides' rank, sets and held weapon, how long the fight took and what each side used. Players with private stats have `username: null`.",
+        "parameters": [
+          {
+            "name": "mode",
+            "in": "query",
+            "required": true,
+            "description": "Game mode (its slug)",
+            "schema": {
+              "$ref": "#/components/schemas/GameMode"
+            },
+            "example": "kitpvp"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Max 50",
+            "schema": {
+              "type": "integer",
+              "default": 25,
+              "maximum": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Fights",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Fight"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad mode"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "description": "Fights or events are not available right now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fights/stats": {
+      "get": {
+        "tags": [
+          "Fights"
+        ],
+        "summary": "A mode's recent PvP",
+        "description": "Top killers, weapons, sets (kills made wearing each, and how many players wore it), consumables, death causes, the kill count and the median fight length.",
+        "parameters": [
+          {
+            "name": "mode",
+            "in": "query",
+            "required": true,
+            "description": "Game mode (its slug)",
+            "schema": {
+              "$ref": "#/components/schemas/GameMode"
+            },
+            "example": "kitpvp"
+          },
+          {
+            "name": "hours",
+            "in": "query",
+            "description": "Window, 1-168",
+            "schema": {
+              "type": "integer",
+              "default": 24,
+              "minimum": 1,
+              "maximum": 168
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The mode's PvP",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeFights"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad mode or hours"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "description": "Fights or events are not available right now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fights/{id}": {
+      "get": {
+        "tags": [
+          "Fights"
+        ],
+        "summary": "One fight with both full loadouts",
+        "description": "Every slot of both players' gear with enchants, sets, kits and scrolls, their gear when the fight began, and the in-game name and lore of each bonus item.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "A fight id from `/fights` (`<epoch ms>.<uuid>`)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The fight",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FightDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such fight"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "description": "Fights or events are not available right now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/profile/{username}/fights": {
+      "get": {
+        "tags": [
+          "Fights"
+        ],
+        "summary": "A player's fights",
+        "description": "Kills, deaths, their latest fights, head to head against the players they met most, the weapons they killed with, what they used, deaths with no player killer, per-mode totals and kill streaks.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/username"
+          },
+          {
+            "name": "mode",
+            "in": "query",
+            "description": "One game mode only",
+            "schema": {
+              "$ref": "#/components/schemas/GameMode"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "description": "1-30",
+            "schema": {
+              "type": "integer",
+              "default": 30,
+              "minimum": 1,
+              "maximum": 30
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Latest fights to include, max 50",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "maximum": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Their fights",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerFights"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "The player keeps their stats private (empty body)"
+          },
+          "400": {
+            "description": "No such player",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "description": "Fights or events are not available right now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/seasons": {
+      "get": {
+        "tags": [
+          "Other"
+        ],
+        "summary": "Seasons per mode",
+        "description": "Past (finished) season numbers per mode, keyed as `grizzly:{mode}`. The current season is not listed; requests without `season` return it. Some listed seasons have no data at all.",
+        "responses": {
+          "200": {
+            "description": "Seasons",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    }
+                  }
+                },
+                "example": {
+                  "grizzly:opfactions": [
+                    46,
+                    47,
+                    48
+                  ],
+                  "grizzly:opskyblock": [
+                    28,
+                    29,
+                    30
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/seasons/details": {
+      "get": {
+        "tags": [
+          "Other"
+        ],
+        "summary": "Season start and end dates",
+        "description": "When each season of a mode started and ended. A season ends when the next one starts, so the running season has `end: null`. Seasons without a recorded start date are left out.",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "description": "Only this type, e.g. `grizzly:opfactions` (returns just its list)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dates per type, oldest season first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/SeasonDates"
+                    }
+                  }
+                },
+                "example": {
+                  "grizzly:opfactions": [
+                    {
+                      "season": 48,
+                      "start": "2026-08-01",
+                      "end": "2026-09-12"
+                    },
+                    {
+                      "season": 49,
+                      "start": "2026-09-12",
+                      "end": null
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "description": "Dates can't be read right now"
+          }
+        }
+      }
+    },
+    "/recaps/{gameId}": {
+      "get": {
+        "tags": [
+          "Other"
+        ],
+        "summary": "A match recap",
+        "description": "The result of one game: map, duration, every player's stats and the winners. The game id comes from the recap link shown in game after a match.",
+        "parameters": [
+          {
+            "name": "gameId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The recap",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Recap"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Not a valid game id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No recap for that game"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ApiKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Api-Key",
+        "description": "Your key from `/apikey` in-game."
+      }
+    },
+    "parameters": {
+      "username": {
+        "name": "username",
+        "in": "path",
+        "required": true,
+        "description": "Minecraft username (not case-sensitive)",
+        "schema": {
+          "type": "string"
+        },
+        "example": "JustThiemo"
+      },
+      "type": {
+        "name": "type",
+        "in": "query",
+        "required": true,
+        "description": "Game mode",
+        "schema": {
+          "$ref": "#/components/schemas/GameMode"
+        },
+        "example": "bedwars"
+      },
+      "teamMode": {
+        "name": "mode",
+        "in": "path",
+        "required": true,
+        "description": "Game mode with groups",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "opfactions",
+            "opskyblock",
+            "oneblock",
+            "skymines",
+            "opprison",
+            "kitpvp",
+            "skypvp",
+            "genpvp",
+            "survival",
+            "oplifesteal"
+          ]
+        },
+        "example": "opfactions"
+      },
+      "interval": {
+        "name": "interval",
+        "in": "query",
+        "required": true,
+        "description": "Period. `yearly` exists only for BedWars and Unranked Practice; past seasons only have `total`.",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "weekly",
+            "monthly",
+            "yearly",
+            "total"
+          ],
+          "default": "total"
+        }
+      },
+      "subMode": {
+        "name": "mode",
+        "in": "query",
+        "required": true,
+        "description": "Sub-mode filter: `ALL_MODES` for everything, or e.g. BedWars `SOLO`, `DOUBLES`, `TRIPLES`, `QUAD`; Practice `NODEBUFF`, `BOXING`, `SUMO`...",
+        "schema": {
+          "type": "string",
+          "default": "ALL_MODES"
+        },
+        "example": "ALL_MODES"
+      },
+      "season": {
+        "name": "season",
+        "in": "query",
+        "description": "Past season number (see `/seasons`). Leave out for the current season.",
+        "schema": {
+          "type": "integer"
+        }
+      }
+    },
+    "responses": {
+      "RateLimited": {
+        "description": "Over your key's limit (120 a minute). Wait the seconds in `Retry-After` and retry."
+      }
+    },
+    "schemas": {
+      "GameMode": {
+        "type": "string",
+        "enum": [
+          "opfactions",
+          "opprison",
+          "opskyblock",
+          "oneblock",
+          "survival",
+          "kitpvp",
+          "unrankedpractice",
+          "rankedpractice",
+          "bedwars",
+          "skywars",
+          "oplifesteal",
+          "skypvp",
+          "skymines",
+          "genpvp",
+          "wildkits",
+          "dungeons"
+        ]
+      },
+      "Profile": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "example": "JustThiemo"
+          },
+          "lastSeen": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix time in milliseconds",
+            "example": 1792020692705
+          },
+          "rank": {
+            "type": "object",
+            "description": "Network level",
+            "properties": {
+              "level": {
+                "type": "integer",
+                "example": 14
+              },
+              "experience": {
+                "type": "integer",
+                "example": 427
+              },
+              "percentage": {
+                "type": "number",
+                "description": "Progress to the next level, 0-100",
+                "example": 65.69
+              },
+              "rankDisplay": {
+                "type": "string",
+                "description": "Color code for the level",
+                "example": "&7"
+              }
+            }
+          },
+          "ranks": {
+            "type": "array",
+            "description": "Bought ranks per server",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "example": "opfac7"
+                },
+                "displayName": {
+                  "type": "string",
+                  "example": "Eternal"
+                },
+                "server": {
+                  "type": "string",
+                  "example": "opfac"
+                },
+                "season": {
+                  "type": "integer",
+                  "nullable": true
+                },
+                "expiry": {
+                  "type": "integer",
+                  "format": "int64",
+                  "description": "-1 = permanent",
+                  "example": -1
+                }
+              }
+            }
+          },
+          "friends": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "username": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "clan": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Clan"
+              }
+            ],
+            "nullable": true,
+            "description": "The player's BedWars guild, or null",
+            "type": "object"
+          },
+          "email_verified": {
+            "type": "boolean"
+          },
+          "discord_verified": {
+            "type": "boolean"
+          },
+          "discord_boosting": {
+            "type": "boolean"
+          }
+        }
+      },
+      "LeaderboardEntry": {
+        "type": "object",
+        "properties": {
+          "place": {
+            "type": "integer",
+            "example": 1
+          },
+          "value": {
+            "type": "string",
+            "description": "Numeric value as a string (can be very large or fractional)",
+            "example": "15066"
+          },
+          "id": {
+            "type": "string",
+            "description": "Username",
+            "example": "ohRickyy"
+          },
+          "clan": {
+            "type": "string",
+            "description": "BedWars only: the player's guild",
+            "example": "Tragedy"
+          },
+          "rank": {
+            "type": "string",
+            "description": "Rank on that server, when the player has one",
+            "example": "Eternal"
+          }
+        }
+      },
+      "Leaderboard": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer",
+                "description": "Ranked players for this stat",
+                "example": 2173602
+              }
+            }
+          },
+          "entries": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/LeaderboardEntry"
+            }
+          }
+        }
+      },
+      "PlayerLeaderboard": {
+        "type": "object",
+        "description": "Keyed by stat display name",
+        "additionalProperties": {
+          "$ref": "#/components/schemas/Leaderboard"
+        },
+        "example": {
+          "Wins": {
+            "metadata": {
+              "total": 2173602
+            },
+            "entries": [
+              {
+                "place": 4120,
+                "value": "312",
+                "id": "SPY_TankAF"
+              }
+            ]
+          },
+          "Kills": {
+            "metadata": {
+              "total": 21401
+            },
+            "entries": null
+          }
+        }
+      },
+      "StatTotal": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Kills"
+          },
+          "total": {
+            "type": "integer",
+            "description": "Players with this stat",
+            "example": 4483313
+          },
+          "sum": {
+            "type": "number",
+            "example": 604369594
+          },
+          "average": {
+            "type": "number",
+            "example": 134.8
+          }
+        }
+      },
+      "TopTeam": {
+        "type": "object",
+        "properties": {
+          "place": {
+            "type": "integer",
+            "example": 1
+          },
+          "entityId": {
+            "type": "string",
+            "example": "61"
+          },
+          "displayName": {
+            "type": "string",
+            "description": "May contain color codes",
+            "example": "§c§lNo§4§lHook"
+          },
+          "value": {
+            "type": "string",
+            "description": "Headline value (worth, points...) as a string",
+            "example": "30911100000000"
+          },
+          "placeChange24h": {
+            "type": "integer",
+            "nullable": true,
+            "description": "With `with=change`: places gained in 24 hours (positive = up)",
+            "example": 2
+          },
+          "valueChange24h": {
+            "type": "number",
+            "nullable": true,
+            "description": "With `with=change`: headline value gained in 24 hours",
+            "example": 1250000000
+          }
+        }
+      },
+      "TeamMember": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "object",
+            "properties": {
+              "username": {
+                "type": "string",
+                "example": "AlexandrosGR"
+              }
+            }
+          },
+          "role": {
+            "type": "string",
+            "description": "Depends on the mode: LEADER, CO_LEADER, OFFICER, MODERATOR, MEMBER, RECRUIT, OWNER...",
+            "example": "LEADER"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "joinedAt": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "TeamDetail": {
+        "type": "object",
+        "properties": {
+          "place": {
+            "type": "integer",
+            "nullable": true,
+            "example": 2
+          },
+          "team": {
+            "type": "object",
+            "properties": {
+              "gamemode": {
+                "type": "string",
+                "example": "opfactions"
+              },
+              "family": {
+                "type": "string",
+                "description": "factions, islands, teams...",
+                "example": "factions"
+              },
+              "entityId": {
+                "type": "string",
+                "example": "20"
+              },
+              "displayName": {
+                "type": "string",
+                "example": "§021§6g"
+              },
+              "tag": {
+                "type": "string"
+              },
+              "memberCount": {
+                "type": "integer",
+                "example": 5
+              },
+              "headlineValue": {
+                "type": "number",
+                "example": 11918540000000
+              },
+              "season": {
+                "type": "integer",
+                "example": 49
+              },
+              "aggStats": {
+                "type": "object",
+                "description": "Members' combined stats by stat id",
+                "additionalProperties": {
+                  "type": "number"
+                },
+                "example": {
+                  "common.kills": 243,
+                  "common.deaths": 21,
+                  "common.balance": 280100000000
+                }
+              },
+              "breakdown": {
+                "type": "object",
+                "description": "Mode-specific details",
+                "additionalProperties": true
+              },
+              "members": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/TeamMember"
+                }
+              }
+            }
+          }
+        }
+      },
+      "TeamStatCatalog": {
+        "type": "object",
+        "properties": {
+          "gamemode": {
+            "type": "string",
+            "example": "opfactions"
+          },
+          "stats": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "example": "common.kills"
+                },
+                "name": {
+                  "type": "string",
+                  "example": "Kills"
+                }
+              }
+            }
+          }
+        }
+      },
+      "PlayerTeam": {
+        "type": "object",
+        "properties": {
+          "gamemode": {
+            "type": "string",
+            "example": "opskyblock"
+          },
+          "entityId": {
+            "type": "string",
+            "example": "fb215822-8446-4ba6-b38f-36da17f6a0c3"
+          },
+          "displayName": {
+            "type": "string",
+            "example": "SPY_TankAF's Island"
+          },
+          "role": {
+            "type": "string",
+            "example": "OWNER"
+          }
+        }
+      },
+      "Clan": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "NEXUS"
+          },
+          "tag": {
+            "type": "string",
+            "example": "✽Nexu5✽"
+          },
+          "currentTrophies": {
+            "type": "integer",
+            "example": 0
+          },
+          "creationTime": {
+            "type": "string",
+            "description": "Local date-time without zone",
+            "example": "2022-11-03T10:35:35"
+          },
+          "owner": {
+            "type": "object",
+            "properties": {
+              "username": {
+                "type": "string",
+                "example": "svit2008"
+              }
+            }
+          },
+          "leveling": {
+            "type": "object",
+            "properties": {
+              "level": {
+                "type": "integer",
+                "example": 111
+              },
+              "exp": {
+                "type": "integer",
+                "example": 131557
+              },
+              "totalExp": {
+                "type": "integer",
+                "example": 15050336
+              }
+            }
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "user": {
+                  "type": "object",
+                  "properties": {
+                    "username": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "joinDate": {
+                  "type": "string",
+                  "example": "2026-03-30T10:36:27"
+                }
+              }
+            }
+          }
+        }
+      },
+      "SeasonDates": {
+        "type": "object",
+        "properties": {
+          "season": {
+            "type": "integer",
+            "example": 48
+          },
+          "start": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-08-01"
+          },
+          "end": {
+            "type": "string",
+            "format": "date",
+            "nullable": true,
+            "description": "The next season's start; null while running",
+            "example": "2026-09-12"
+          }
+        }
+      },
+      "Recap": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "mapName": {
+            "type": "string"
+          },
+          "gameType": {
+            "type": "string",
+            "example": "BedWars"
+          },
+          "gameServerName": {
+            "type": "string"
+          },
+          "gameStart": {
+            "type": "string"
+          },
+          "gameDuration": {
+            "type": "string"
+          },
+          "users": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "username": {
+                  "type": "string"
+                },
+                "stats": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ]
+                  },
+                  "example": {
+                    "Kills": 7,
+                    "Final kills": 3,
+                    "Beds destroyed": 1
+                  }
+                }
+              }
+            }
+          },
+          "winners": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "stats": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Stat names shown in this recap"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "example": 400
+          },
+          "error": {
+            "type": "string",
+            "example": "Bad Request"
+          },
+          "path": {
+            "type": "string"
+          }
+        }
+      },
+      "PlayerHistory": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "KIT_PVP"
+          },
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "series": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "stat": {
+                  "type": "string",
+                  "example": "kills"
+                },
+                "name": {
+                  "type": "string",
+                  "example": "Kills"
+                },
+                "points": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "date": {
+                        "type": "string",
+                        "format": "date"
+                      },
+                      "value": {
+                        "type": "number"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "StatId": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "crate.open.epic"
+          },
+          "name": {
+            "type": "string",
+            "example": "crate.open.epic"
+          }
+        }
+      },
+      "Mover": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Username",
+            "example": "PincoPancoNada"
+          },
+          "from": {
+            "type": "number"
+          },
+          "to": {
+            "type": "number"
+          },
+          "gain": {
+            "type": "number",
+            "example": 855300137379
+          },
+          "place": {
+            "type": "integer",
+            "example": 1
+          }
+        }
+      },
+      "TeamSnapshot": {
+        "type": "object",
+        "properties": {
+          "snapshotTs": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Epoch milliseconds"
+          },
+          "headlineValue": {
+            "type": "number"
+          },
+          "place": {
+            "type": "integer",
+            "nullable": true
+          },
+          "aggStats": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number"
+            },
+            "example": {
+              "common.kills": 240,
+              "common.balance": 1277309960898.6
+            }
+          }
+        }
+      },
+      "TeamHistory": {
+        "type": "object",
+        "properties": {
+          "gamemode": {
+            "type": "string",
+            "example": "opfactions"
+          },
+          "entityId": {
+            "type": "string",
+            "example": "6"
+          },
+          "interval": {
+            "type": "string",
+            "example": "Lifetime"
+          },
+          "points": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamSnapshot"
+            }
+          }
+        }
+      },
+      "TeamVsSide": {
+        "type": "object",
+        "properties": {
+          "entityId": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true,
+            "description": "May contain color codes"
+          },
+          "place": {
+            "type": "integer",
+            "nullable": true
+          },
+          "headlineValue": {
+            "type": "number",
+            "nullable": true
+          },
+          "aggStats": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": {
+              "type": "number"
+            }
+          },
+          "snapshot": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TeamSnapshot"
+              }
+            ],
+            "nullable": true,
+            "description": "With `at`",
+            "type": "object"
+          },
+          "series": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/TeamSnapshot"
+            },
+            "description": "With `from`/`to`"
+          }
+        }
+      },
+      "TeamVs": {
+        "type": "object",
+        "properties": {
+          "gamemode": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "current",
+              "at",
+              "range"
+            ]
+          },
+          "at": {
+            "type": "integer",
+            "nullable": true
+          },
+          "from": {
+            "type": "integer",
+            "nullable": true
+          },
+          "to": {
+            "type": "integer",
+            "nullable": true
+          },
+          "a": {
+            "$ref": "#/components/schemas/TeamVsSide"
+          },
+          "b": {
+            "$ref": "#/components/schemas/TeamVsSide"
+          }
+        }
+      },
+      "ClanMember": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "joinDate": {
+            "type": "string",
+            "example": "2022-05-14T00:13:14"
+          },
+          "stats": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "total": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "number"
+                },
+                "example": {
+                  "WINS": 35,
+                  "KILLS": 285
+                }
+              },
+              "weekly": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "number"
+                },
+                "example": {
+                  "WINS": 35,
+                  "KILLS": 285
+                }
+              },
+              "monthly": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "number"
+                },
+                "example": {
+                  "WINS": 35,
+                  "KILLS": 285
+                }
+              }
+            }
+          }
+        }
+      },
+      "EventSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string",
+            "example": "SPLEEF"
+          },
+          "name": {
+            "type": "string",
+            "example": "Spleef"
+          },
+          "map": {
+            "type": "string",
+            "example": "greek"
+          },
+          "mapName": {
+            "type": "string",
+            "example": "Greek"
+          },
+          "teamSize": {
+            "type": "integer",
+            "example": 1
+          },
+          "startedAt": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Epoch milliseconds"
+          },
+          "endedAt": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Epoch milliseconds"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "WIN",
+              "NO_WINNER",
+              "FORCE_ENDED"
+            ]
+          },
+          "players": {
+            "type": "integer",
+            "example": 143
+          },
+          "winners": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "Wrath"
+            ]
+          }
+        }
+      },
+      "EventStanding": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "placement": {
+            "type": "integer",
+            "example": 1
+          },
+          "winner": {
+            "type": "boolean"
+          },
+          "team": {
+            "type": "integer",
+            "nullable": true
+          },
+          "teamColor": {
+            "type": "string",
+            "nullable": true,
+            "example": "#FF5555"
+          },
+          "outAt": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true,
+            "description": "Epoch ms when they went out; null for players still in at the end"
+          },
+          "outReason": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "ELIMINATED",
+              "KNOCKED_OUT",
+              "LEFT",
+              null
+            ]
+          },
+          "kills": {
+            "type": "integer"
+          },
+          "score": {
+            "type": "integer"
+          }
+        }
+      },
+      "Event": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/EventSummary"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "progression": {
+                "type": "string",
+                "enum": [
+                  "LAST_STANDING",
+                  "BRACKET",
+                  "BEST_SCORE",
+                  "MOST_KILLS"
+                ]
+              },
+              "server": {
+                "type": "string"
+              },
+              "host": {
+                "type": "string",
+                "nullable": true,
+                "description": "Who started the countdown"
+              },
+              "endReason": {
+                "type": "string",
+                "nullable": true
+              },
+              "standings": {
+                "type": "array",
+                "description": "Everyone, best first",
+                "items": {
+                  "$ref": "#/components/schemas/EventStanding"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "EventWinner": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "wins": {
+            "type": "integer"
+          },
+          "podiums": {
+            "type": "integer"
+          },
+          "played": {
+            "type": "integer"
+          }
+        }
+      },
+      "EventType": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "SPLEEF"
+          },
+          "name": {
+            "type": "string",
+            "example": "Spleef"
+          },
+          "events": {
+            "type": "integer"
+          },
+          "lastStartedAt": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Epoch milliseconds"
+          }
+        }
+      },
+      "PlayerEvents": {
+        "type": "object",
+        "properties": {
+          "summary": {
+            "type": "object",
+            "properties": {
+              "played": {
+                "type": "integer"
+              },
+              "wins": {
+                "type": "integer"
+              },
+              "podiums": {
+                "type": "integer"
+              },
+              "bestPlacement": {
+                "type": "integer",
+                "nullable": true
+              }
+            }
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "event": {
+                  "$ref": "#/components/schemas/EventSummary"
+                },
+                "placement": {
+                  "type": "integer"
+                },
+                "winner": {
+                  "type": "boolean"
+                },
+                "kills": {
+                  "type": "integer"
+                },
+                "score": {
+                  "type": "integer"
+                },
+                "outReason": {
+                  "type": "string",
+                  "nullable": true
+                }
+              }
+            }
+          }
+        }
+      },
+      "Consumable": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "GoldenHead"
+          },
+          "name": {
+            "type": "string",
+            "example": "Golden Head"
+          },
+          "count": {
+            "type": "integer",
+            "example": 2
+          }
+        }
+      },
+      "Count": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "example": "DIAMOND_SWORD"
+          },
+          "count": {
+            "type": "integer",
+            "example": 289
+          }
+        }
+      },
+      "GearPiece": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "DIAMOND_SWORD"
+          },
+          "ench": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "example": {
+              "Sharpness": 5
+            }
+          },
+          "set": {
+            "type": "string",
+            "description": "Bonus gear set"
+          },
+          "kit": {
+            "type": "string",
+            "example": "kit:Knight"
+          },
+          "scrolls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "extra": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number"
+            }
+          }
+        }
+      },
+      "FightSide": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "nullable": true,
+            "description": "Null when their stats are private"
+          },
+          "rank": {
+            "type": "string",
+            "nullable": true,
+            "example": "Baron"
+          },
+          "elo": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Null where the mode has no rating"
+          },
+          "sets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "kit:Knight"
+            ]
+          },
+          "weapon": {
+            "type": "string",
+            "nullable": true,
+            "description": "What they held: a material, `kit:<kit>:<material>` or a bonus item id",
+            "example": "DIAMOND_SWORD"
+          },
+          "loadout": {
+            "type": "object",
+            "nullable": true,
+            "description": "Fight pages only: their gear at the kill",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/GearPiece"
+            }
+          },
+          "consumables": {
+            "type": "array",
+            "description": "What they used during the fight",
+            "items": {
+              "$ref": "#/components/schemas/Consumable"
+            }
+          },
+          "startLoadout": {
+            "type": "object",
+            "nullable": true,
+            "description": "Fight pages only: their gear when the fight began",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/GearPiece"
+            }
+          }
+        }
+      },
+      "Fight": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "1793201854084.a03adfb5-5041-40ec-b879-03a4be0f672c"
+          },
+          "time": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Epoch milliseconds"
+          },
+          "mode": {
+            "type": "string",
+            "example": "KitPvP"
+          },
+          "server": {
+            "type": "string",
+            "nullable": true,
+            "example": "pika-kitpvp"
+          },
+          "killType": {
+            "type": "string",
+            "enum": [
+              "melee",
+              "projectile",
+              "other"
+            ]
+          },
+          "cause": {
+            "type": "string",
+            "nullable": true,
+            "description": "Damage cause of the killing blow",
+            "example": "ENTITY_ATTACK"
+          },
+          "duration": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Ms from when both sides were in combat to the kill",
+            "example": 11900
+          },
+          "weapon": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "item": {
+                "type": "string",
+                "example": "DIAMOND_SWORD"
+              },
+              "enchants": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "winner": {
+            "$ref": "#/components/schemas/FightSide"
+          },
+          "loser": {
+            "$ref": "#/components/schemas/FightSide"
+          }
+        }
+      },
+      "FightDetail": {
+        "type": "object",
+        "properties": {
+          "fight": {
+            "$ref": "#/components/schemas/Fight"
+          },
+          "items": {
+            "type": "object",
+            "description": "In-game name and lore of each bonus piece, by `<set>:<slot>`",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "lore": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "material": {
+                  "type": "string",
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "indexable": {
+            "type": "boolean",
+            "description": "False for a fight on a development or testing server: it answers by its id (with `X-Robots-Tag: noindex`) but is in no list"
+          }
+        }
+      },
+      "PlayerFights": {
+        "type": "object",
+        "properties": {
+          "days": {
+            "type": "integer"
+          },
+          "kills": {
+            "type": "integer",
+            "example": 336
+          },
+          "deaths": {
+            "type": "integer",
+            "example": 72
+          },
+          "bestStreak": {
+            "type": "integer",
+            "description": "Most kills in a row without dying",
+            "example": 60
+          },
+          "streak": {
+            "type": "integer",
+            "description": "The run going on now",
+            "example": 5
+          },
+          "recent": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "fight": {
+                  "$ref": "#/components/schemas/Fight"
+                },
+                "won": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "opponents": {
+            "type": "array",
+            "description": "Head to head with the players met most",
+            "items": {
+              "type": "object",
+              "properties": {
+                "username": {
+                  "type": "string"
+                },
+                "kills": {
+                  "type": "integer"
+                },
+                "deaths": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "weapons": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Count"
+            }
+          },
+          "consumables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Consumable"
+            }
+          },
+          "deathsBy": {
+            "type": "array",
+            "description": "Deaths with no player killer, by damage cause",
+            "items": {
+              "$ref": "#/components/schemas/Count"
+            }
+          },
+          "modes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "type": "string"
+                },
+                "kills": {
+                  "type": "integer"
+                },
+                "deaths": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ModeFights": {
+        "type": "object",
+        "properties": {
+          "hours": {
+            "type": "integer"
+          },
+          "kills": {
+            "type": "integer",
+            "example": 5017
+          },
+          "medianDuration": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Ms",
+            "example": 9452
+          },
+          "killers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "username": {
+                  "type": "string"
+                },
+                "kills": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "weapons": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Count"
+            }
+          },
+          "sets": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "set": {
+                  "type": "string",
+                  "example": "elderflame"
+                },
+                "kills": {
+                  "type": "integer"
+                },
+                "worn": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "consumables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Consumable"
+            }
+          },
+          "causes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Count"
+            }
+          }
+        }
+      }
+    }
+  }
+}

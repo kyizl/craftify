@@ -1,81 +1,54 @@
 ---
-title: Profile
-order: 4
+title: Player Profile
+order: 2
 ---
 
-# Profile
+# Player profile
 
-<Badge type="info" text="GET" /> `/profile/{username}`
+`GET /profile/{username}` returns the [`Profile`](./schemas#profile) schema. The path parameter is a Minecraft username and is documented as not case-sensitive.
 
-Account profile: rank, boosting flags, clan membership. Not gameplay stats, see [Profile Stats](./profile-stats).
-
-## Path parameters
-
-| Parameter  | Type     | Required                                 | Description      |
-| ---------- | -------- | ---------------------------------------- | ---------------- |
-| `username` | `string` | <Badge type="warning" text="required" /> | case-insensitive |
+The TypeScript example assumes `pika` is configured as shown in the [getting-started guide](/guide/getting-started).
 
 ## Response `200`
 
-::: warning unverified schema
-Not covered by the query-parameter crawl, no combinations to enumerate. Field types below reflect the client's validation schema, which is deliberately permissive.
-:::
+The OpenAPI schema does not mark any top-level profile property as required. A property may be absent; `clan` is additionally nullable.
 
-The response includes account metadata, donor ranks, optional clan details, and friend usernames. Additional fields are preserved by the client for forward compatibility.
+| Field              | Type                               | Notes                                                                                             |
+| ------------------ | ---------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `username`         | `string`                           | Minecraft username                                                                                |
+| `lastSeen`         | `integer`                          | Unix timestamp in milliseconds                                                                    |
+| `rank`             | `object`                           | Network level: `level`, `experience`, `percentage`, `rankDisplay`                                 |
+| `ranks`            | `object[]`                         | Server ranks: `name`, `displayName`, `server`, nullable `season`, `expiry` (`-1` means permanent) |
+| `friends`          | `object[]`                         | Each entry contains a `username`                                                                  |
+| `clan`             | [`Clan`](./schemas#clan) `\| null` | BedWars guild, when present                                                                       |
+| `email_verified`   | `boolean`                          | Linked email verification state                                                                   |
+| `discord_verified` | `boolean`                          | Linked Discord verification state                                                                 |
+| `discord_boosting` | `boolean`                          | Discord boosting state                                                                            |
 
-| Field              | Type                     | Notes                                                       |
-| ------------------ | ------------------------ | ----------------------------------------------------------- |
-| `username`         | `string`                 | <Badge type="info" text="optional" />                       |
-| `lastSeen`         | `number`                 | <Badge type="info" text="optional" /> unix ms               |
-| `discord_verified` | `boolean`                | <Badge type="info" text="optional" />                       |
-| `email_verified`   | `boolean`                | <Badge type="info" text="optional" />                       |
-| `boosting`         | `boolean`                | <Badge type="info" text="optional" />                       |
-| `discord_boosting` | `boolean`                | <Badge type="info" text="optional" />                       |
-| `rank.level`       | `number`                 | <Badge type="info" text="optional" />                       |
-| `rank.experience`  | `number`                 | <Badge type="info" text="optional" />                       |
-| `rank.percentage`  | `number`                 | <Badge type="info" text="optional" />                       |
-| `rank.rankDisplay` | `string`                 | <Badge type="info" text="optional" />                       |
-| `ranks`            | `DonorRank[]`            | <Badge type="info" text="optional" /> donor/server ranks    |
-| `clan`             | `{ name, tag } \| null`  | <Badge type="info" text="optional" /> nullable, not omitted |
-| `friends`          | `{ username: string }[]` | <Badge type="info" text="optional" />                       |
-| _(other fields)_   | `unknown`                | schema is passthrough; unlisted fields survive parsing      |
+Craftify's permissive profile validator also accepts an optional `boosting` field. That field is **not present in the current upstream `Profile` schema**; do not rely on it as a documented response property.
 
-Each donor rank can include `name`, `displayName`, `server`, `season`, and `expiry`.
+## Request
 
-Use `getTopRank(profile, scope)` to select the highest active donor rank. The scope can be `global`, a gamemode such as `kitpvp`, or `all`.
-
-## Live example
-
-This runs a real `GET` request from your browser directly to `stats.pika-network.net`, no proxy, no mock data. Response reflects whatever that account looks like right now.
-
-<LiveEndpoint url="https://stats.pika-network.net/api/profile/resuns" />
-
-## Request forms
-
-::: code-group
-
-```text [HTTP]
-GET /profile/resuns
+```bash
+curl \
+  -H "X-Api-Key: $PIKA_API_KEY" \
+  "https://stats.pika-network.net/api/profile/JustThiemo"
 ```
 
-```bash [cURL]
-curl 'https://stats.pika-network.net/api/profile/resuns'
+```ts
+const profile = await pika.getProfile('JustThiemo');
+
+if (profile) {
+  console.log(profile.username, profile.rank?.level, profile.clan?.tag);
+}
 ```
 
-```ts [craftify]
-import { PikaNetworkClient } from '@kyizl/craftify';
+## Status codes
 
-const pika = new PikaNetworkClient({ apiKey: process.env.PIKA_API_KEY! });
+| Status | Meaning                                                         |
+| ------ | --------------------------------------------------------------- |
+| `200`  | Profile returned                                                |
+| `404`  | No player with that name; the documented response body is empty |
+| `429`  | Per-key rate limit exceeded                                     |
 
-const profile = await pika.getProfile('resuns');
-```
-
-:::
-
-## Errors
-
-| Status             | Condition               |
-| ------------------ | ----------------------- |
-| `404` (empty body) | username does not exist |
-
-No `400` case.
+All documented profile requests require `X-Api-Key`. See the [authentication and rate-limit overview](./overview#getting-an-api-key).

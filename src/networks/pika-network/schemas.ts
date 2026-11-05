@@ -1,5 +1,11 @@
 import { z } from 'zod';
 
+// Bound untrusted upstream collections before Zod walks every item. This also
+// activates Zod's pre-parse size guard for array validation.
+const MAX_RESPONSE_ARRAY_LENGTH = 10_000;
+const boundedArray = <T extends z.ZodType>(schema: T) =>
+  z.array(schema).max(MAX_RESPONSE_ARRAY_LENGTH);
+
 const numericString = z
   .union([
     z.number(),
@@ -10,7 +16,7 @@ const numericString = z
   .transform(Number);
 
 const leaderboardEntrySchema = z.object({
-  place: z.number(),
+  place: z.number().int(),
   value: numericString,
   id: z.string(),
   clan: z.string().nullable().optional(),
@@ -18,8 +24,8 @@ const leaderboardEntrySchema = z.object({
 });
 
 export const PikaNetworkLeaderboardResponseSchema = z.object({
-  metadata: z.object({ total: z.number() }),
-  entries: z.array(leaderboardEntrySchema).nullable(),
+  metadata: z.object({ total: z.number().int() }),
+  entries: boundedArray(leaderboardEntrySchema).nullable(),
 });
 export type PikaNetworkLeaderboardResponse = z.infer<
   typeof PikaNetworkLeaderboardResponseSchema
@@ -35,16 +41,16 @@ export type PikaNetworkProfileStatsResponse = z.infer<
 
 const totalsEntrySchema = z.object({
   name: z.string(),
-  total: z.number(),
+  total: z.number().int(),
   average: z.number(),
   sum: z.number(),
 });
-export const PikaNetworkTotalsResponseSchema = z.array(totalsEntrySchema);
+export const PikaNetworkTotalsResponseSchema = boundedArray(totalsEntrySchema);
 export type PikaNetworkTotalsResponse = z.infer<typeof PikaNetworkTotalsResponseSchema>;
 
 const profileRankSchema = z.object({
-  level: z.number().optional(),
-  experience: z.number().optional(),
+  level: z.number().int().optional(),
+  experience: z.number().int().optional(),
   percentage: z.number().optional(),
   rankDisplay: z.string().optional(),
 });
@@ -62,7 +68,7 @@ export type PikaNetworkProfileDonorRank = z.infer<
   typeof PikaNetworkProfileDonorRankSchema
 >;
 
-export const clanMemberSchema = z
+export const ClanMemberSchema = z
   .object({
     user: z.object({
       username: z.string(),
@@ -71,30 +77,30 @@ export const clanMemberSchema = z
     rank: z.string().optional(),
   })
   .passthrough();
-export type ClanMember = z.infer<typeof clanMemberSchema>;
+export type ClanMember = z.infer<typeof ClanMemberSchema>;
 
-const profileFriendSchema = z
+export const PikaNetworkProfileFriendSchema = z
   .object({
     username: z.string(),
   })
   .passthrough();
-export type PikaNetworkProfileFriend = z.infer<typeof profileFriendSchema>;
+export type PikaNetworkProfileFriend = z.infer<typeof PikaNetworkProfileFriendSchema>;
 
 export const PikaNetworkClanResponseSchema = z
   .object({
     name: z.string().optional(),
     tag: z.string().optional(),
     trophies: z.number().optional(),
-    currentTrophies: z.number().optional(),
+    currentTrophies: z.number().int().optional(),
     createdAt: z.union([z.number(), z.string()]).optional(),
     creationTime: z.string().optional(),
-    members: z.array(clanMemberSchema).optional(),
+    members: boundedArray(ClanMemberSchema).optional(),
     owner: z.object({ username: z.string() }).optional(),
     leveling: z
       .object({
-        level: z.number().optional(),
-        exp: z.number().optional(),
-        totalExp: z.number().optional(),
+        level: z.number().int().optional(),
+        exp: z.number().int().optional(),
+        totalExp: z.number().int().optional(),
       })
       .optional(),
   })
@@ -104,15 +110,15 @@ export type PikaNetworkClanResponse = z.infer<typeof PikaNetworkClanResponseSche
 export const PikaNetworkProfileResponseSchema = z
   .object({
     username: z.string().optional(),
-    lastSeen: z.number().optional(),
+    lastSeen: z.number().int().optional(),
     discord_verified: z.boolean().optional(),
     email_verified: z.boolean().optional(),
     boosting: z.boolean().optional(),
     discord_boosting: z.boolean().optional(),
     rank: profileRankSchema.optional(),
-    ranks: z.array(PikaNetworkProfileDonorRankSchema).optional(),
+    ranks: boundedArray(PikaNetworkProfileDonorRankSchema).optional(),
     clan: PikaNetworkClanResponseSchema.nullable().optional(),
-    friends: z.array(profileFriendSchema).optional(),
+    friends: boundedArray(PikaNetworkProfileFriendSchema).optional(),
   })
   .passthrough();
 export type PikaNetworkProfileResponse = z.infer<typeof PikaNetworkProfileResponseSchema>;
@@ -125,18 +131,16 @@ export const PikaNetworkRecapResponseSchema = z
     gameServerName: z.string().optional(),
     gameStart: z.string().optional(),
     gameDuration: z.string().optional(),
-    users: z
-      .array(
-        z
-          .object({
-            username: z.string().optional(),
-            stats: z.record(z.string(), z.union([z.string(), z.number()])).optional(),
-          })
-          .passthrough(),
-      )
-      .optional(),
-    winners: z.array(z.string()).optional(),
-    stats: z.array(z.string()).optional(),
+    users: boundedArray(
+      z
+        .object({
+          username: z.string().optional(),
+          stats: z.record(z.string(), z.union([z.string(), z.number()])).optional(),
+        })
+        .passthrough(),
+    ).optional(),
+    winners: boundedArray(z.string()).optional(),
+    stats: boundedArray(z.string()).optional(),
   })
   .passthrough();
 export type PikaNetworkRecapResponse = z.infer<typeof PikaNetworkRecapResponseSchema>;
@@ -152,30 +156,26 @@ export const PikaNetworkPlayerTeamSchema = z
   })
   .passthrough();
 export type PikaNetworkPlayerTeam = z.infer<typeof PikaNetworkPlayerTeamSchema>;
-export const PikaNetworkPlayerTeamsSchema = z.array(PikaNetworkPlayerTeamSchema);
+export const PikaNetworkPlayerTeamsSchema = boundedArray(PikaNetworkPlayerTeamSchema);
 
 export const PikaNetworkPlayerHistorySchema = z
   .object({
     type: z.string().optional(),
     from: z.string().optional(),
     to: z.string().optional(),
-    series: z
-      .array(
-        z
-          .object({
-            stat: z.union([z.string(), z.number()]).optional(),
-            name: z.string().optional(),
-            points: z
-              .array(
-                z
-                  .object({ date: z.string().optional(), value: z.number().optional() })
-                  .passthrough(),
-              )
-              .optional(),
-          })
-          .passthrough(),
-      )
-      .optional(),
+    series: boundedArray(
+      z
+        .object({
+          stat: z.union([z.string(), z.number()]).optional(),
+          name: z.string().optional(),
+          points: boundedArray(
+            z
+              .object({ date: z.string().optional(), value: z.number().optional() })
+              .passthrough(),
+          ).optional(),
+        })
+        .passthrough(),
+    ).optional(),
   })
   .passthrough();
 export type PikaNetworkPlayerHistory = z.infer<typeof PikaNetworkPlayerHistorySchema>;
@@ -184,7 +184,7 @@ export const PikaNetworkStatIdSchema = z
   .object({ id: z.string(), name: z.string() })
   .passthrough();
 export type PikaNetworkStatId = z.infer<typeof PikaNetworkStatIdSchema>;
-export const PikaNetworkLeaderboardStatsSchema = z.array(PikaNetworkStatIdSchema);
+export const PikaNetworkLeaderboardStatsSchema = boundedArray(PikaNetworkStatIdSchema);
 
 export const PikaNetworkMoverSchema = z
   .object({
@@ -196,7 +196,7 @@ export const PikaNetworkMoverSchema = z
   })
   .passthrough();
 export type PikaNetworkMover = z.infer<typeof PikaNetworkMoverSchema>;
-export const PikaNetworkMoversSchema = z.array(PikaNetworkMoverSchema);
+export const PikaNetworkMoversSchema = boundedArray(PikaNetworkMoverSchema);
 
 export const PikaNetworkTopTeamSchema = z
   .object({
@@ -209,7 +209,7 @@ export const PikaNetworkTopTeamSchema = z
   })
   .passthrough();
 export type PikaNetworkTopTeam = z.infer<typeof PikaNetworkTopTeamSchema>;
-export const PikaNetworkTopTeamsSchema = z.array(PikaNetworkTopTeamSchema);
+export const PikaNetworkTopTeamsSchema = boundedArray(PikaNetworkTopTeamSchema);
 
 export const PikaNetworkTeamMemberSchema = z
   .object({
@@ -233,7 +233,7 @@ export const PikaNetworkTeamSchema = z
     season: z.number().optional(),
     aggStats: numberRecordSchema.optional(),
     breakdown: z.record(z.string(), z.unknown()).optional(),
-    members: z.array(PikaNetworkTeamMemberSchema).optional(),
+    members: boundedArray(PikaNetworkTeamMemberSchema).optional(),
   })
   .passthrough();
 export type PikaNetworkTeam = z.infer<typeof PikaNetworkTeamSchema>;
@@ -249,13 +249,9 @@ export type PikaNetworkTeamDetail = z.infer<typeof PikaNetworkTeamDetailSchema>;
 export const PikaNetworkTeamStatCatalogSchema = z
   .object({
     gamemode: z.string().optional(),
-    stats: z
-      .array(
-        z
-          .object({ id: z.string().optional(), name: z.string().optional() })
-          .passthrough(),
-      )
-      .optional(),
+    stats: boundedArray(
+      z.object({ id: z.string().optional(), name: z.string().optional() }).passthrough(),
+    ).optional(),
   })
   .passthrough();
 export type PikaNetworkTeamStatCatalog = z.infer<typeof PikaNetworkTeamStatCatalogSchema>;
@@ -275,7 +271,7 @@ export const PikaNetworkTeamHistorySchema = z
     gamemode: z.string().optional(),
     entityId: z.string().optional(),
     interval: z.string().optional(),
-    points: z.array(PikaNetworkTeamSnapshotSchema).optional(),
+    points: boundedArray(PikaNetworkTeamSnapshotSchema).optional(),
   })
   .passthrough();
 export type PikaNetworkTeamHistory = z.infer<typeof PikaNetworkTeamHistorySchema>;
@@ -288,7 +284,7 @@ export const PikaNetworkTeamVsSideSchema = z
     headlineValue: z.number().nullable().optional(),
     aggStats: numberRecordSchema.nullable().optional(),
     snapshot: PikaNetworkTeamSnapshotSchema.nullable().optional(),
-    series: z.array(PikaNetworkTeamSnapshotSchema).nullable().optional(),
+    series: boundedArray(PikaNetworkTeamSnapshotSchema).nullable().optional(),
   })
   .passthrough();
 
@@ -317,6 +313,7 @@ export type PikaNetworkClanMemberStats = z.infer<typeof PikaNetworkClanMemberSta
 export const PikaNetworkClanMemberStatsResponseSchema = z
   .object({
     username: z.string().optional(),
+    user: z.object({ username: z.string().optional() }).optional(),
     joinDate: z.string().optional(),
     stats: PikaNetworkClanMemberStatsSchema.nullable().optional(),
   })
@@ -324,7 +321,7 @@ export const PikaNetworkClanMemberStatsResponseSchema = z
 export type PikaNetworkClanMemberStatsResponse = z.infer<
   typeof PikaNetworkClanMemberStatsResponseSchema
 >;
-export const PikaNetworkClanMembersSchema = z.array(
+export const PikaNetworkClanMembersSchema = boundedArray(
   PikaNetworkClanMemberStatsResponseSchema,
 );
 
@@ -336,11 +333,11 @@ export const PikaNetworkSeasonDatesSchema = z
   })
   .passthrough();
 export type PikaNetworkSeasonDates = z.infer<typeof PikaNetworkSeasonDatesSchema>;
-export const PikaNetworkSeasonsSchema = z.record(z.string(), z.array(z.number()));
+export const PikaNetworkSeasonsSchema = z.record(z.string(), boundedArray(z.number()));
 export type PikaNetworkSeasons = Record<string, number[]>;
 export const PikaNetworkSeasonDetailsSchema = z.union([
-  z.record(z.string(), z.array(PikaNetworkSeasonDatesSchema)),
-  z.array(PikaNetworkSeasonDatesSchema),
+  z.record(z.string(), boundedArray(PikaNetworkSeasonDatesSchema)),
+  boundedArray(PikaNetworkSeasonDatesSchema),
 ]);
 export type PikaNetworkSeasonDetails = z.infer<typeof PikaNetworkSeasonDetailsSchema>;
 
@@ -356,7 +353,7 @@ export const PikaNetworkEventSummarySchema = z
     endedAt: z.number().optional(),
     outcome: z.enum(['WIN', 'NO_WINNER', 'FORCE_ENDED']).optional(),
     players: z.number().optional(),
-    winners: z.array(z.string()).optional(),
+    winners: boundedArray(z.string()).optional(),
   })
   .passthrough();
 export type PikaNetworkEventSummary = z.infer<typeof PikaNetworkEventSummarySchema>;
@@ -383,14 +380,14 @@ export const PikaNetworkEventSchema = PikaNetworkEventSummarySchema.extend({
   server: z.string().optional(),
   host: z.string().nullable().optional(),
   endReason: z.string().nullable().optional(),
-  standings: z.array(PikaNetworkEventStandingSchema).optional(),
+  standings: boundedArray(PikaNetworkEventStandingSchema).optional(),
 });
 export type PikaNetworkEvent = z.infer<typeof PikaNetworkEventSchema>;
 
 export const PikaNetworkEventPageSchema = z
   .object({
     total: z.number().optional(),
-    events: z.array(PikaNetworkEventSummarySchema),
+    events: boundedArray(PikaNetworkEventSummarySchema),
   })
   .passthrough();
 export type PikaNetworkEventPage = z.infer<typeof PikaNetworkEventPageSchema>;
@@ -404,7 +401,7 @@ export const PikaNetworkEventWinnerSchema = z
   })
   .passthrough();
 export type PikaNetworkEventWinner = z.infer<typeof PikaNetworkEventWinnerSchema>;
-export const PikaNetworkEventWinnersSchema = z.array(PikaNetworkEventWinnerSchema);
+export const PikaNetworkEventWinnersSchema = boundedArray(PikaNetworkEventWinnerSchema);
 
 export const PikaNetworkEventTypeSchema = z
   .object({
@@ -415,7 +412,7 @@ export const PikaNetworkEventTypeSchema = z
   })
   .passthrough();
 export type PikaNetworkEventType = z.infer<typeof PikaNetworkEventTypeSchema>;
-export const PikaNetworkEventTypesSchema = z.array(PikaNetworkEventTypeSchema);
+export const PikaNetworkEventTypesSchema = boundedArray(PikaNetworkEventTypeSchema);
 
 export const PikaNetworkPlayerEventsSchema = z
   .object({
@@ -428,20 +425,18 @@ export const PikaNetworkPlayerEventsSchema = z
       })
       .passthrough()
       .optional(),
-    events: z
-      .array(
-        z
-          .object({
-            event: PikaNetworkEventSummarySchema.optional(),
-            placement: z.number().optional(),
-            winner: z.boolean().optional(),
-            kills: z.number().optional(),
-            score: z.number().optional(),
-            outReason: z.string().nullable().optional(),
-          })
-          .passthrough(),
-      )
-      .optional(),
+    events: boundedArray(
+      z
+        .object({
+          event: PikaNetworkEventSummarySchema.optional(),
+          placement: z.number().optional(),
+          winner: z.boolean().optional(),
+          kills: z.number().optional(),
+          score: z.number().optional(),
+          outReason: z.string().nullable().optional(),
+        })
+        .passthrough(),
+    ).optional(),
   })
   .passthrough();
 export type PikaNetworkPlayerEvents = z.infer<typeof PikaNetworkPlayerEventsSchema>;
@@ -466,7 +461,7 @@ export const PikaNetworkGearPieceSchema = z
     ench: numberRecordSchema.optional(),
     set: z.string().optional(),
     kit: z.string().optional(),
-    scrolls: z.array(z.string()).optional(),
+    scrolls: boundedArray(z.string()).optional(),
     extra: numberRecordSchema.optional(),
   })
   .passthrough();
@@ -477,10 +472,10 @@ export const PikaNetworkFightSideSchema = z
     username: z.string().nullable().optional(),
     rank: z.string().nullable().optional(),
     elo: z.number().nullable().optional(),
-    sets: z.array(z.string()).optional(),
+    sets: boundedArray(z.string()).optional(),
     weapon: z.string().nullable().optional(),
     loadout: z.record(z.string(), PikaNetworkGearPieceSchema).nullable().optional(),
-    consumables: z.array(PikaNetworkConsumableSchema).optional(),
+    consumables: boundedArray(PikaNetworkConsumableSchema).optional(),
     startLoadout: z.record(z.string(), PikaNetworkGearPieceSchema).nullable().optional(),
   })
   .passthrough();
@@ -504,7 +499,7 @@ export const PikaNetworkFightSchema = z
   })
   .passthrough();
 export type PikaNetworkFight = z.infer<typeof PikaNetworkFightSchema>;
-export const PikaNetworkFightsSchema = z.array(PikaNetworkFightSchema);
+export const PikaNetworkFightsSchema = boundedArray(PikaNetworkFightSchema);
 
 export const PikaNetworkFightDetailSchema = z
   .object({
@@ -515,7 +510,7 @@ export const PikaNetworkFightDetailSchema = z
         z
           .object({
             name: z.string().optional(),
-            lore: z.array(z.string()).optional(),
+            lore: boundedArray(z.string()).optional(),
             material: z.string().nullable().optional(),
           })
           .passthrough(),
@@ -532,41 +527,35 @@ export const PikaNetworkPlayerFightsSchema = z
     deaths: z.number().optional(),
     bestStreak: z.number().optional(),
     streak: z.number().optional(),
-    recent: z
-      .array(
-        z
-          .object({
-            fight: PikaNetworkFightSchema.optional(),
-            won: z.boolean().optional(),
-          })
-          .passthrough(),
-      )
-      .optional(),
-    opponents: z
-      .array(
-        z
-          .object({
-            username: z.string().optional(),
-            kills: z.number().optional(),
-            deaths: z.number().optional(),
-          })
-          .passthrough(),
-      )
-      .optional(),
-    weapons: z.array(PikaNetworkCountSchema).optional(),
-    consumables: z.array(PikaNetworkConsumableSchema).optional(),
-    deathsBy: z.array(PikaNetworkCountSchema).optional(),
-    modes: z
-      .array(
-        z
-          .object({
-            mode: z.string().optional(),
-            kills: z.number().optional(),
-            deaths: z.number().optional(),
-          })
-          .passthrough(),
-      )
-      .optional(),
+    recent: boundedArray(
+      z
+        .object({
+          fight: PikaNetworkFightSchema.optional(),
+          won: z.boolean().optional(),
+        })
+        .passthrough(),
+    ).optional(),
+    opponents: boundedArray(
+      z
+        .object({
+          username: z.string().optional(),
+          kills: z.number().optional(),
+          deaths: z.number().optional(),
+        })
+        .passthrough(),
+    ).optional(),
+    weapons: boundedArray(PikaNetworkCountSchema).optional(),
+    consumables: boundedArray(PikaNetworkConsumableSchema).optional(),
+    deathsBy: boundedArray(PikaNetworkCountSchema).optional(),
+    modes: boundedArray(
+      z
+        .object({
+          mode: z.string().optional(),
+          kills: z.number().optional(),
+          deaths: z.number().optional(),
+        })
+        .passthrough(),
+    ).optional(),
   })
   .passthrough();
 export type PikaNetworkPlayerFights = z.infer<typeof PikaNetworkPlayerFightsSchema>;
@@ -576,27 +565,23 @@ export const PikaNetworkModeFightsSchema = z
     hours: z.number().optional(),
     kills: z.number().optional(),
     medianDuration: z.number().nullable().optional(),
-    killers: z
-      .array(
-        z
-          .object({ username: z.string().optional(), kills: z.number().optional() })
-          .passthrough(),
-      )
-      .optional(),
-    weapons: z.array(PikaNetworkCountSchema).optional(),
-    sets: z
-      .array(
-        z
-          .object({
-            set: z.string().optional(),
-            kills: z.number().optional(),
-            worn: z.number().optional(),
-          })
-          .passthrough(),
-      )
-      .optional(),
-    consumables: z.array(PikaNetworkConsumableSchema).optional(),
-    causes: z.array(PikaNetworkCountSchema).optional(),
+    killers: boundedArray(
+      z
+        .object({ username: z.string().optional(), kills: z.number().optional() })
+        .passthrough(),
+    ).optional(),
+    weapons: boundedArray(PikaNetworkCountSchema).optional(),
+    sets: boundedArray(
+      z
+        .object({
+          set: z.string().optional(),
+          kills: z.number().optional(),
+          worn: z.number().optional(),
+        })
+        .passthrough(),
+    ).optional(),
+    consumables: boundedArray(PikaNetworkConsumableSchema).optional(),
+    causes: boundedArray(PikaNetworkCountSchema).optional(),
   })
   .passthrough();
 export type PikaNetworkModeFights = z.infer<typeof PikaNetworkModeFightsSchema>;

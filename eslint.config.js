@@ -14,6 +14,8 @@ export default defineConfig(
       'docs/.vitepress/cache',
       'docs/api',
       'data',
+      '.design-pass.mjs',
+      '.design-pass/**',
     ],
   },
   js.configs.recommended,

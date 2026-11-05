@@ -15,7 +15,7 @@
   "hidePageHeader": true,
   "expandParameters": true,
   "useCodeBlocks": true,
-  "indexFormat": "table",
+  "indexFormat": "list",
   "parametersFormat": "table",
   "propertiesFormat": "table",
   "enumMembersFormat": "table",

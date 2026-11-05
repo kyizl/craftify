@@ -8,11 +8,15 @@ import {
 import { getTopRank } from '@/networks/pika-network/ranks';
 import {
   PikaNetworkEventPageSchema,
+  PikaNetworkClanMembersSchema,
   PikaNetworkLeaderboardResponseSchema,
   PikaNetworkPlayerEventsSchema,
   PikaNetworkPlayerFightsSchema,
   PikaNetworkPlayerHistorySchema,
+  PikaNetworkTeamStatCatalogSchema,
+  PikaNetworkModeFightsSchema,
   PikaNetworkRecapResponseSchema,
+  PikaNetworkTotalsResponseSchema,
   PikaNetworkTeamDetailSchema,
   PikaNetworkTeamHistorySchema,
 } from '@/networks/pika-network/schemas';
@@ -132,6 +136,72 @@ describe('Craftify API Wrapper Fixes', () => {
         recent: [],
       }).success,
     ).toBe(true);
+  });
+
+  it('rejects oversized recap user collections', () => {
+    const result = PikaNetworkRecapResponseSchema.safeParse({
+      users: Array.from({ length: 10_001 }, () => ({ username: 'player' })),
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('accepts both the published and client-compatible clan member shapes', () => {
+    const result = PikaNetworkClanMembersSchema.safeParse([
+      { user: { username: 'nested-player' }, joinDate: '2026-01-01T00:00:00' },
+      {
+        username: 'flat-player',
+        joinDate: '2026-01-02T00:00:00',
+        stats: { total: { WINS: 12 } },
+      },
+    ]);
+
+    expect(result.success).toBe(true);
+  });
+
+  it('keeps integer fields strict and bounds nested response collections', () => {
+    expect(
+      PikaNetworkLeaderboardResponseSchema.safeParse({
+        metadata: { total: 1.5 },
+        entries: [{ place: 1, value: '2', id: 'player' }],
+      }).success,
+    ).toBe(false);
+    expect(
+      PikaNetworkTotalsResponseSchema.safeParse([
+        { name: 'Wins', total: 1.5, sum: 1, average: 1 },
+      ]).success,
+    ).toBe(false);
+
+    const oversized = Array.from({ length: 10_001 }, () => ({}));
+
+    expect(PikaNetworkPlayerHistorySchema.safeParse({ series: oversized }).success).toBe(
+      false,
+    );
+    expect(
+      PikaNetworkPlayerHistorySchema.safeParse({ series: [{ points: oversized }] })
+        .success,
+    ).toBe(false);
+    expect(PikaNetworkTeamStatCatalogSchema.safeParse({ stats: oversized }).success).toBe(
+      false,
+    );
+    expect(PikaNetworkPlayerEventsSchema.safeParse({ events: oversized }).success).toBe(
+      false,
+    );
+    expect(PikaNetworkPlayerFightsSchema.safeParse({ recent: oversized }).success).toBe(
+      false,
+    );
+    expect(
+      PikaNetworkPlayerFightsSchema.safeParse({ opponents: oversized }).success,
+    ).toBe(false);
+    expect(PikaNetworkPlayerFightsSchema.safeParse({ modes: oversized }).success).toBe(
+      false,
+    );
+    expect(PikaNetworkModeFightsSchema.safeParse({ killers: oversized }).success).toBe(
+      false,
+    );
+    expect(PikaNetworkModeFightsSchema.safeParse({ sets: oversized }).success).toBe(
+      false,
+    );
   });
 
   it('withStatKeyAccessor indexes stats for O(1) reads without mutating input', () => {

@@ -87,7 +87,7 @@ export abstract class NetworkClient {
       );
     }
 
-    const data = parsed.data as z.infer<S>;
+    const data = parsed.data;
     await this.cache.set(
       cacheKey,
       data,

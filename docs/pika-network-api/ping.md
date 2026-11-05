@@ -5,43 +5,30 @@ order: 8
 
 # Ping
 
-<Badge type="info" text="GET" /> `/ping`
+`GET /ping` is a small health-check route used by `PikaNetworkClient.ping()`. It is **not included in the published OpenAPI document**, so it is documented separately from the 28 official operations and may change without notice.
 
-Liveness check.
+The TypeScript example assumes `pika` is configured as shown in the [getting-started guide](/guide/getting-started).
 
-## Response `200`
+## Observed response
 
-::: warning not JSON
-`text/plain` body. Anything other than exactly `Pong!`, including a `200` with a different body, is unhealthy.
-:::
+I sent a direct unauthenticated request to the official API on **5 November 2026**. It returned:
 
-<LiveEndpoint url="https://stats.pika-network.net/api/ping" raw />
+| Status | Content type               | Body    |
+| ------ | -------------------------- | ------- |
+| `200`  | `text/plain;charset=UTF-8` | `Pong!` |
 
-## Example
-
-::: code-group
-
-```text [HTTP]
-GET /ping
+```bash
+curl "https://stats.pika-network.net/api/ping"
 ```
 
-```bash [cURL]
-curl 'https://stats.pika-network.net/api/ping'
+No API key was required for that probe. This observation is not a guarantee that the route will remain public or retain the same response.
+
+## Craftify behavior
+
+```ts
+const isOnline = await pika.ping();
 ```
 
-```ts [craftify]
-import { PikaNetworkClient } from '@kyizl/craftify';
+The client sends `GET /ping` without using the response cache. It returns `true` only when the response body is exactly `Pong!`; an unexpected body, HTTP failure, or network error resolves to `false`.
 
-const pika = new PikaNetworkClient({ apiKey: process.env.PIKA_API_KEY! });
-
-const healthy = await pika.ping();
-```
-
-:::
-
-## Client behavior
-
-| Property   | Value                          |
-| ---------- | ------------------------------ |
-| Caching    | none                           |
-| On failure | resolves `false`, never throws |
+Use the official [OpenAPI document](https://stats.pika-network.net/openapi.json) for the supported HTTP contract. Do not use this health check as an authentication or feature-availability check.

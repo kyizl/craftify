@@ -1,0 +1,557 @@
+/* Craftify's landing page: editorial typography, deliberate structure, quiet precision. */
+.VPHome {
+  position: relative;
+  isolation: isolate;
+  background: var(--vp-c-bg);
+}
+
+.VPHome .VPHero {
+  overflow: visible;
+  padding: 76px 24px 44px;
+}
+
+.VPHome .VPHero .container {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(500px, 0.92fr);
+  align-items: center;
+  gap: clamp(28px, 3.5vw, 44px);
+  max-width: 1180px;
+}
+
+.VPHome .VPHero .main {
+  max-width: none;
+  margin: 0;
+  border-left: 1px solid var(--craftify-line);
+  padding-left: clamp(22px, 4vw, 54px);
+  text-align: left;
+}
+
+.VPHome .VPHero .heading {
+  display: flex;
+  align-items: flex-start;
+  overflow: visible;
+  text-align: left;
+}
+
+.VPHome .VPHero .image {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  width: 100%;
+  height: auto;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+}
+
+.VPHome .VPHero .image-container {
+  width: 100%;
+  max-width: 560px;
+  height: auto;
+  aspect-ratio: 560 / 500;
+  margin: 0;
+}
+
+.VPHome .VPHero .image-bg {
+  display: none;
+}
+
+.VPHome .VPHero .image-src {
+  position: static;
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  max-height: none;
+  object-fit: contain;
+  transform: none;
+}
+
+.VPHome .VPHero .name {
+  width: fit-content;
+  margin: 0;
+  padding: 0.02em 0 0.22em;
+  color: var(--craftify-purple-deep);
+  font-size: clamp(4.25rem, 8vw, 6.75rem);
+  font-weight: 780;
+  letter-spacing: -0.075em;
+  line-height: 1.2;
+  text-align: left;
+  text-shadow: none;
+}
+
+.VPHome .VPHero .name.clip {
+  overflow: visible;
+}
+
+.VPHome .VPHero .text {
+  max-width: 680px;
+  margin: 8px 0 0;
+  color: var(--craftify-ink);
+  font-size: clamp(1.8rem, 2.8vw, 2.3rem);
+  font-weight: 730;
+  letter-spacing: -0.05em;
+  line-height: 1.15;
+  text-align: left;
+}
+
+.VPHome .VPHero .tagline {
+  max-width: 600px;
+  margin: 17px 0 0;
+  color: var(--craftify-muted);
+  font-size: 1rem;
+  line-height: 1.72;
+  text-align: left;
+}
+
+.VPHome .VPHero .actions {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.VPHome .VPHero .actions .action {
+  width: 156px;
+  flex: 0 0 156px;
+}
+
+.VPHome .VPHero .actions .action .VPButton {
+  width: 100%;
+}
+
+.VPHome .VPHero .actions .VPButton.brand {
+  background: var(--craftify-purple);
+  box-shadow: 0 7px 18px rgb(83 58 117 / 13%);
+}
+
+.VPHome .VPHero .actions .VPButton.alt {
+  border-color: var(--craftify-line);
+  background: var(--craftify-panel);
+}
+
+.craftify-home-content {
+  width: min(1120px, calc(100% - 56px));
+  margin: 0 auto;
+  padding: 16px 0 56px;
+}
+
+.craftify-home-intro {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.68fr) minmax(0, 1.32fr);
+  align-items: center;
+  gap: clamp(30px, 5vw, 72px);
+  padding: 36px 0 22px;
+}
+
+.craftify-home-intro-copy h2,
+.craftify-home-section-heading h2,
+.craftify-home-paths-heading h2 {
+  margin: 10px 0 14px;
+  color: var(--craftify-ink);
+  font-family: var(--craftify-display);
+  font-size: clamp(2rem, 3.5vw, 3.05rem);
+  font-weight: 760;
+  letter-spacing: -0.065em;
+  line-height: 1.06;
+  text-wrap: balance;
+}
+
+.craftify-home-eyebrow {
+  margin: 0;
+  color: var(--craftify-purple-deep);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+}
+
+.craftify-home-intro-copy h2 span {
+  color: var(--craftify-purple-deep);
+}
+
+.craftify-home-intro-copy > p,
+.craftify-home-section-heading > p {
+  max-width: 470px;
+  margin: 0;
+  color: var(--craftify-muted);
+  font-size: 0.96rem;
+  line-height: 1.8;
+}
+
+.craftify-home-intro-copy > p:last-child {
+  max-width: 340px;
+}
+
+.craftify-home-terminal {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #453752;
+  border-radius: 17px;
+  background:
+    radial-gradient(ellipse at 100% 0%, rgb(149 111 190 / 16%), transparent 48%), #191520;
+  box-shadow:
+    0 24px 60px rgb(47 34 65 / 16%),
+    0 4px 12px rgb(47 34 65 / 8%);
+  color: #e9e1f1;
+}
+
+.craftify-terminal-bar {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  border-bottom: 1px solid rgb(255 255 255 / 8%);
+  padding: 0 21px;
+}
+
+.craftify-terminal-file {
+  color: #c8bdd3;
+  font-family: var(--vp-font-family-mono);
+  font-size: 0.72rem;
+}
+
+.craftify-home-terminal pre {
+  margin: 0;
+  overflow-x: auto;
+  padding: 22px 23px 19px;
+  background: transparent;
+  color: #e9e1f1;
+  font-family: var(--vp-font-family-mono);
+  font-size: clamp(0.68rem, 1vw, 0.78rem);
+  line-height: 1.9;
+  scrollbar-color: #655371 #211a2a;
+}
+
+.craftify-home-terminal code {
+  color: inherit;
+  font: inherit;
+  white-space: pre;
+}
+
+.craftify-home-terminal .token-keyword {
+  color: #d5a7f4;
+}
+
+.craftify-home-terminal .token-class {
+  color: #9fd6e2;
+}
+
+.craftify-home-terminal .token-string {
+  color: #e6b6a1;
+}
+
+.craftify-home-terminal .token-property {
+  color: #e8c98e;
+}
+
+.craftify-home-terminal .token-method {
+  color: #b9d7a5;
+}
+
+.craftify-home-section-heading {
+  margin: 62px 0 24px;
+  text-align: left;
+}
+
+.craftify-home-section-heading h2,
+.craftify-home-paths-heading h2 {
+  margin: 10px 0 10px;
+  font-size: clamp(1.8rem, 3vw, 2.45rem);
+}
+
+.craftify-home-section-heading > p {
+  max-width: 590px;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.craftify-home-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 44px;
+  border-top: 1px solid var(--craftify-line);
+}
+
+.craftify-home-feature {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 164px;
+  grid-template-columns: 42px minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  align-items: start;
+  column-gap: 16px;
+  border: 0;
+  border-bottom: 1px solid var(--craftify-line);
+  border-radius: 0;
+  background: transparent;
+  padding: 24px 0;
+  transition: border-color 180ms ease;
+}
+
+.craftify-feature-index {
+  position: static;
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  padding-top: 1px;
+  color: var(--craftify-subtle);
+  font-family: var(--vp-font-family-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.craftify-home-feature h3 {
+  grid-column: 2;
+  grid-row: 1;
+  margin: 0 0 7px;
+  color: var(--craftify-ink);
+  font-family: var(--craftify-display);
+  font-size: 0.98rem;
+  font-weight: 740;
+  letter-spacing: -0.025em;
+}
+
+.craftify-home-feature p {
+  grid-column: 2;
+  grid-row: 2;
+  margin: 0;
+  color: var(--craftify-muted);
+  font-size: 0.84rem;
+  line-height: 1.72;
+}
+
+.craftify-home-paths-heading {
+  margin: 72px 0 20px;
+  text-align: left;
+}
+
+.craftify-home-paths-heading h2 {
+  margin-bottom: 0;
+}
+
+.craftify-home-links {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  border-top: 1px solid var(--craftify-line);
+  border-bottom: 1px solid var(--craftify-line);
+  margin: 0 0 54px;
+}
+
+.craftify-home-links a {
+  grid-template-columns: 34px minmax(0, 1fr) 14px;
+  min-height: 102px;
+  gap: 10px;
+  border: 0;
+  border-right: 1px solid var(--craftify-line);
+  border-radius: 0;
+  background: transparent;
+  padding: 19px 16px;
+  box-shadow: none;
+  transition: background 160ms ease;
+}
+
+.craftify-home-links a:last-child {
+  border-right: 0;
+}
+
+.craftify-home-links a:hover {
+  transform: none;
+  border-color: var(--craftify-line);
+  background: var(--craftify-panel-soft);
+  box-shadow: none;
+}
+
+.craftify-home-links a > span:last-child {
+  align-self: start;
+  font-size: 0.95rem;
+}
+
+.dark .VPHome .VPHero .name {
+  color: var(--craftify-purple-deep);
+}
+
+.dark .VPHome .VPHero .image-src {
+  filter: invert(0.88) hue-rotate(215deg) saturate(0.7) brightness(1.2);
+}
+
+.dark .craftify-home-intro-copy h2 span {
+  color: var(--craftify-purple-deep);
+}
+
+.dark .craftify-home-links a {
+  border-color: var(--craftify-line);
+  background: transparent;
+}
+
+.dark .craftify-home-feature {
+  border-color: var(--craftify-line);
+  background: transparent;
+}
+
+@media (hover: hover) {
+  .craftify-home-feature:hover {
+    border-color: color-mix(in srgb, var(--craftify-purple) 58%, var(--craftify-line));
+  }
+}
+
+@media (max-width: 959px) {
+  .VPHome .VPHero .main {
+    max-width: 760px;
+  }
+
+  .VPHome .VPHero .container {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .VPHome .VPHero .image {
+    grid-column: 1;
+    grid-row: 2;
+    max-width: min(100%, 520px);
+    justify-self: center;
+  }
+
+  .craftify-home-intro {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+
+  .craftify-home-intro-copy {
+    max-width: 650px;
+  }
+
+  .craftify-home-feature-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .craftify-home-links {
+    grid-template-columns: 1fr;
+  }
+
+  .craftify-home-links a {
+    border-right: 0;
+    border-bottom: 1px solid var(--craftify-line);
+  }
+
+  .craftify-home-links a:last-child {
+    border-bottom: 0;
+  }
+}
+
+@media (max-width: 639px) {
+  .VPHome .VPHero {
+    padding: 78px 20px 32px;
+  }
+
+  .VPHome .VPHero .main {
+    padding-left: 18px;
+  }
+
+  .VPHome .VPHero .main .heading {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .VPHome .VPHero .main .heading .name {
+    margin-inline: 0;
+    text-align: left;
+  }
+
+  .VPHome .VPHero .main .actions {
+    justify-content: flex-start;
+  }
+
+  .VPHome .VPHero .main .actions .action {
+    width: auto;
+    min-width: 0;
+    flex: 1 1 145px;
+  }
+
+  .VPHome .VPHero .main .actions .action .VPButton {
+    width: 100%;
+  }
+
+  .VPHome .VPHero .image {
+    display: none;
+  }
+
+  .VPHome .VPHero .name {
+    font-size: clamp(3.5rem, 16vw, 4.4rem);
+    padding-bottom: 0.24em;
+  }
+
+  .craftify-home-content {
+    width: calc(100% - 40px);
+    padding-top: 4px;
+  }
+
+  .craftify-home-intro {
+    gap: 20px;
+    padding: 18px 0 12px;
+  }
+
+  .craftify-home-intro-copy h2 {
+    font-size: 2rem;
+  }
+
+  .craftify-home-intro-copy > p {
+    font-size: 0.88rem;
+  }
+
+  .craftify-home-terminal {
+    border-radius: 13px;
+  }
+
+  .craftify-home-terminal pre {
+    padding: 17px 15px;
+    font-size: 0.64rem;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .craftify-home-terminal code {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .craftify-home-section-heading {
+    margin-top: 46px;
+  }
+
+  .craftify-home-feature-grid,
+  .craftify-home-links {
+    grid-template-columns: 1fr;
+  }
+
+  .craftify-home-feature {
+    min-height: 0;
+    padding: 19px 0;
+  }
+
+  .craftify-home-feature h3 {
+    margin-top: 0;
+  }
+
+  .craftify-home-paths-heading {
+    margin-top: 48px;
+  }
+
+  .craftify-home-links {
+    gap: 9px;
+    margin-bottom: 40px;
+  }
+
+  .craftify-home-links a {
+    min-height: 78px;
+    border-right: 0;
+    border-bottom: 1px solid var(--craftify-line);
+    padding: 15px 8px;
+  }
+
+  .craftify-home-links a:last-child {
+    border-bottom: 0;
+  }
+}

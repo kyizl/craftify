@@ -1,86 +1,54 @@
 ---
-title: Profile Stats
-order: 5
+title: Player Stats
+order: 3
 ---
 
-# Profile Stats
+# Player stats by gamemode
 
-<Badge type="info" text="GET" /> `/profile/{username}/leaderboard`
+`GET /profile/{username}/leaderboard` returns a [`PlayerLeaderboard`](./schemas#playerleaderboard) object keyed by stat display name (`Kills`, `Final kills`, `Balance`, and so on). The upstream description says each stat contains the total ranked-player count and the requested player's entry, or `entries: null` when the player has no entry for that period.
 
-Per-player rank and value across every stat for a gamemode/mode. Not [Profile](./profile), despite the shared prefix.
+The TypeScript example assumes `pika`, `Gamemode`, and the relevant stat constants are available as shown in the [getting-started guide](/guide/getting-started).
 
-## Path and query parameters
+## Parameters
 
-| Parameter  | Type     | Required                                       | Description                                                 |
-| ---------- | -------- | ---------------------------------------------- | ----------------------------------------------------------- |
-| `username` | `string` | <Badge type="warning" text="required" /> path  | case-insensitive                                            |
-| `type`     | `string` | <Badge type="warning" text="required" /> query | gamemode id                                                 |
-| `mode`     | `string` | <Badge type="tip" text="recommended" /> query  | not crawled without this param                              |
-| `interval` | `string` | <Badge type="info" text="optional" /> query    | same `yearly` restriction as [Leaderboards](./leaderboards) |
+| Parameter  | Location | Required | Description                                                    |
+| ---------- | -------- | -------- | -------------------------------------------------------------- |
+| `username` | Path     | Yes      | Minecraft username                                             |
+| `type`     | Query    | Yes      | Game mode from the [`GameMode`](./schemas#gamemode) enum       |
+| `interval` | Query    | Yes      | `weekly`, `monthly`, `yearly`, or `total`; defaults to `total` |
+| `mode`     | Query    | Yes      | Sub-mode filter; defaults to `ALL_MODES`                       |
+| `season`   | Query    | No       | Historical season number; past seasons only support `total`    |
+
+`yearly` is available only for BedWars and Unranked Practice. The `mode` parameter is required by the raw HTTP contract even though the server documents the `ALL_MODES` default.
 
 ## Response `200`
 
-::: danger key quirk
-Object keyed by the stat's **display name**, not the raw `stat` key used by [Leaderboards](./leaderboards).
-:::
+The response is a map from stat display name to a `Leaderboard` object:
 
-| Field                           | Type      | Notes                                                                                                                  |
-| ------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `<displayName>`                 | `object`  | key is e.g. `"Bow kills"`, not `BOW_KILLS`. See [Gamemode Catalog](./gamemode-catalog) for the raw to display mapping. |
-| `<displayName>.metadata.total`  | `number`  | players tracked for this stat                                                                                          |
-| `<displayName>.entries`         | `Entry[]` | exactly one entry, this player's own rank                                                                              |
-| `<displayName>.entries[].place` | `number`  | 1-indexed absolute rank                                                                                                |
-| `<displayName>.entries[].value` | `string`  | numeric string                                                                                                         |
-| `<displayName>.entries[].id`    | `string`  | player username                                                                                                        |
+- `metadata.total`: integer count of players ranked for that stat.
+- `entries`: nullable array of [`LeaderboardEntry`](./schemas#leaderboardentry) values.
+- `entries[].place`: integer leaderboard position.
+- `entries[].id`: player username.
+- `entries[].value`: numeric value encoded as a string.
+- `entries[].clan` and `entries[].rank`: optional strings.
 
-## Live example
+The published OpenAPI schema permits `entries: null`; it does not promise that every stat has exactly one entry. The OpenAPI response list currently declares `200` and `429` only. It does not declare a `204` response.
 
-Real `GET` request from your browser, bedwars stats for `resuns`.
+## Request
 
-<LiveEndpoint url="https://stats.pika-network.net/api/profile/resuns/leaderboard?type=bedwars&interval=total&mode=ALL_MODES" />
-
-## Response `204`
-
-::: danger not an error
-Player exists, has no data for this gamemode/mode. Empty body, treat exactly like an empty result.
-:::
-
-```text
-GET /profile/xloray/leaderboard?type=bedwars&interval=total&mode=DOUBLES
-204 No Content
+```bash
+curl \
+  -H "X-Api-Key: $PIKA_API_KEY" \
+  "https://stats.pika-network.net/api/profile/JustThiemo/leaderboard?type=bedwars&interval=total&mode=ALL_MODES"
 ```
 
-## Request forms
-
-::: code-group
-
-```text [HTTP]
-GET /profile/resuns/leaderboard?type=bedwars&interval=total&mode=ALL_MODES
-```
-
-```bash [cURL]
-curl 'https://stats.pika-network.net/api/profile/resuns/leaderboard?type=bedwars&interval=total&mode=ALL_MODES'
-```
-
-```ts [craftify]
-import { Gamemode, PikaNetworkClient } from '@kyizl/craftify';
-
-const pika = new PikaNetworkClient({ apiKey: process.env.PIKA_API_KEY! });
-
+```ts
 const stats = await pika.getProfileStats({
-  username: 'resuns',
+  username: 'JustThiemo',
   gamemode: Gamemode.BedWars,
 });
 
-stats.StatKey.BedWars.Kills;
+const finalKills = stats.StatKey.BedWars.FinalKills;
 ```
 
-:::
-
-## Errors
-
-| Status             | Condition                                      | Verified                                                                                 |
-| ------------------ | ---------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `204` (empty body) | valid request, no data for this gamemode/mode  | <Badge type="tip" text="crawl-confirmed" />                                              |
-| `400`              | invalid gamemode / mode / interval combination | <Badge type="warning" text="inferred" /> by symmetry with [Leaderboards](./leaderboards) |
-| `404` (empty body) | username does not exist                        | <Badge type="warning" text="inferred" /> by symmetry with [Profile](./profile)           |
+Craftify defaults `interval` to `total` and resolves the default sub-mode before sending the request. It normalizes an empty response to an empty `ProfileStats` array; individual stat values are available through `StatKey` or `getProfileStat()`.

@@ -1,64 +1,46 @@
 ---
-title: Totals
-order: 3
+title: Leaderboard Totals
+order: 5
 ---
 
-# Totals
+# Leaderboard totals
 
-<Badge type="info" text="GET" /> `/leaderboards/total`
+`GET /leaderboards/total` returns one [`StatTotal`](./schemas#stattotal) object per stat for a game mode.
 
-Server-wide aggregate per stat, for one gamemode. Not per-player, see [Profile Stats](./profile-stats).
+The TypeScript example assumes `pika` and `Gamemode` are available as shown in the [getting-started guide](/guide/getting-started).
 
-## Query parameters
+## Parameters
 
-| Parameter | Type     | Required                                   | Description                                                                      |
-| --------- | -------- | ------------------------------------------ | -------------------------------------------------------------------------------- |
-| `type`    | `string` | <Badge type="warning" text="required" />   | gamemode id                                                                      |
-| `mode`    | `string` | <Badge type="danger" text="conditional" /> | required only for `pillars` (`Seasonal`); all other gamemodes crawled without it |
+| Parameter | Location | Required | Description                                              |
+| --------- | -------- | -------- | -------------------------------------------------------- |
+| `type`    | Query    | Yes      | Game mode from the [`GameMode`](./schemas#gamemode) enum |
+| `season`  | Query    | No       | Historical season number; omit for the current season    |
+
+The published OpenAPI contract does **not** define a general `mode` query parameter for this route. Craftify currently adds a mode value for the `pillars` gamemode as a client compatibility behavior; that special case is not a general raw-HTTP parameter guarantee.
 
 ## Response `200`
 
-Array, not object.
+The response is an array of `StatTotal` objects:
 
-<LiveEndpoint url="https://stats.pika-network.net/api/leaderboards/total?type=bedwars" />
+| Field     | Type      | Meaning                          |
+| --------- | --------- | -------------------------------- |
+| `name`    | `string`  | Stat display name                |
+| `total`   | `integer` | Number of players with this stat |
+| `sum`     | `number`  | Sum of the stat values           |
+| `average` | `number`  | Average stat value               |
 
-| Field        | Type     | Notes                                                                                                                    |
-| ------------ | -------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `[].name`    | `string` | display name, matches [Gamemode Catalog](./gamemode-catalog), not the raw `stat` key from [Leaderboards](./leaderboards) |
-| `[].total`   | `number` | players tracked for this stat                                                                                            |
-| `[].average` | `number` | mean across tracked players                                                                                              |
-| `[].sum`     | `number` | sum across tracked players                                                                                               |
+The documented operation responses are `200` and `429`.
 
-::: tip numeric encoding
-Unlike `/leaderboards`, every numeric field here is a genuine JSON `number`, not a numeric string.
-:::
+## Request
 
-## Request forms
-
-::: code-group
-
-```text [HTTP]
-GET /leaderboards/total?type=bedwars
+```bash
+curl \
+  -H "X-Api-Key: $PIKA_API_KEY" \
+  "https://stats.pika-network.net/api/leaderboards/total?type=bedwars"
 ```
 
-```bash [cURL]
-curl 'https://stats.pika-network.net/api/leaderboards/total?type=bedwars'
+```ts
+const totals = await pika.getTotals({ gamemode: Gamemode.BedWars });
 ```
 
-```ts [craftify]
-import { Gamemode, PikaNetworkClient } from '@kyizl/craftify';
-
-const pika = new PikaNetworkClient({ apiKey: process.env.PIKA_API_KEY! });
-
-await pika.getTotals({ gamemode: Gamemode.BedWars });
-```
-
-:::
-
-## Errors
-
-| Status | Condition                 |
-| ------ | ------------------------- |
-| `400`  | invalid or missing `type` |
-
-No `404` case.
+Craftify returns an empty array when the upstream response has no body, while the raw HTTP reference remains the source of truth for the documented `StatTotal[]` response.

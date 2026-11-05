@@ -13,8 +13,9 @@ const firstPikaNetworkApiLink =
   pikaNetworkApiSidebar[0]?.items?.[0]?.link ?? '/pika-network-api/overview';
 
 export default defineConfig({
-  title: '@kyizl/craftify',
+  title: 'Craftify',
   description: pkg.description,
+  appearance: true,
   cleanUrls: true,
   lastUpdated: true,
   srcDir: '.',
@@ -28,16 +29,7 @@ export default defineConfig({
 
   head: [
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' }],
-    ['meta', { name: 'theme-color', content: '#000000' }],
-    ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
-    ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }],
-    [
-      'link',
-      {
-        rel: 'stylesheet',
-        href: 'https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap',
-      },
-    ],
+    ['meta', { name: 'theme-color', content: '#fbf9fd' }],
   ],
 
   themeConfig: {
@@ -46,7 +38,7 @@ export default defineConfig({
       { text: 'Home', link: '/' },
       { text: 'Guide', link: firstGuideLink },
       { text: 'API Reference', link: '/api/' },
-      { text: 'PikaNetwork API', link: firstPikaNetworkApiLink },
+      { text: 'HTTP API', link: firstPikaNetworkApiLink },
       {
         text: 'Links',
         items: [
@@ -76,6 +68,6 @@ export default defineConfig({
   },
 
   markdown: {
-    theme: { light: 'github-light', dark: 'vitesse-black' },
+    theme: { light: 'github-light', dark: 'github-dark' },
   },
 });

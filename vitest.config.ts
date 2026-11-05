@@ -10,7 +10,6 @@ export default defineConfig({
   },
   test: {
     include: ['tests/**/*.test.ts'],
-    setupFiles: ['tests/setup/msw-server.ts'],
     passWithNoTests: true,
     coverage: {
       provider: 'v8',
